@@ -10,12 +10,12 @@
 
 **100% 本地优先的学术文稿阅读、结构化比对与原格式无损修订工作台**
 
-[![Version](https://img.shields.io/badge/version-v0.1.0-38BDF8?style=flat-square&labelColor=0F172A)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v0.2.0-38BDF8?style=flat-square&labelColor=0F172A)](./CHANGELOG.md)
 [![GitHub Stars](https://img.shields.io/github/stars/maniac8/PaperDiff?style=flat-square&color=FACC15&labelColor=0F172A)](https://github.com/maniac8/PaperDiff/stargazers)
 [![Python >= 3.11](https://img.shields.io/badge/python-%3E%3D3.11-3776AB?style=flat-square&logo=python&logoColor=white&labelColor=0F172A)](#快速开始)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat-square&logo=fastapi&logoColor=white&labelColor=0F172A)](#系统技术架构)
 [![React 18 + TypeScript](https://img.shields.io/badge/React%2018-TypeScript-38BDF8?style=flat-square&logo=react&logoColor=white&labelColor=0F172A)](#系统技术架构)
-[![Platforms](https://img.shields.io/badge/platform-macOS%20DMG%20%7C%20Windows%20%7C%20Linux-64748B?style=flat-square&labelColor=0F172A)](#快速开始)
+[![Platforms](https://img.shields.io/badge/platform-macOS%20DMG%20%7C%20Windows%20EXE%2FZIP%20%7C%20Linux-64748B?style=flat-square&labelColor=0F172A)](#快速开始)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22C55E?style=flat-square&labelColor=0F172A)](./LICENSE)
 [![Privacy](https://img.shields.io/badge/privacy-100%25%20%E6%9C%AC%E5%9C%B0%E7%A6%BB%E7%BA%BF-22C55E?style=flat-square&labelColor=0F172A)](#安全隐私与明确边界)
 
@@ -29,9 +29,9 @@
 
 只运行在你的电脑本机（`127.0.0.1`），**不联网、不上传文稿、不调用外部大模型 API、零 GPL/AGPL 传染性依赖**——KaTeX 公式、Mermaid 图表、代码高亮、Word 原版排版视图与出版级 PDF 导出在断网状态下均 100% 可用。
 
-| 隐私与网络 | 441 块 / 2,750 公式滚动 | macOS 独立安装包 | 自动化验证 |
+| 隐私与网络 | 441 块 / 2,750 公式滚动 | 双端独立安装包 | 自动化验证 |
 | :---: | :---: | :---: | :---: |
-| **100% 本地离线**<br><sub>仅监听 `127.0.0.1` · 零遥测</sub> | **锁定 60.0 FPS**<br><sub>`P50 = 16.65 ms` · `P95 = 17.35 ms`</sub> | **46.7 MB DMG**<br><sub>Apple Silicon · 零运行环境依赖</sub> | **59 项 pytest + 14 项单测**<br><sub>含真实 Chrome CDP 端到端</sub> |
+| **100% 本地离线**<br><sub>仅监听 `127.0.0.1` · 零遥测</sub> | **锁定 60.0 FPS**<br><sub>`P50 = 16.65 ms` · `P95 = 17.35 ms`</sub> | **macOS `.dmg` & Win `.exe`/`.zip`**<br><sub>零 Python/Node 环境依赖</sub> | **76 项 pytest + 14 项单测**<br><sub>含 Chrome CDP 与 Windows 兼容</sub> |
 
 ## 界面演示
 
@@ -76,7 +76,7 @@
 
 无需安装 Python 或 Node.js：
 
-1. 前往 [GitHub Releases](https://github.com/maniac8/PaperDiff/releases) 下载 **`PaperDiff-v0.1.0-macOS-arm64.dmg`**。
+1. 前往 [GitHub Releases](https://github.com/maniac8/PaperDiff/releases) 下载 **`PaperDiff-v0.2.0-macOS-arm64.dmg`**。
 2. 双击打开 `.dmg`，将 **`PaperDiff.app`** 拖入「应用程序」文件夹。
 3. 从应用程序或聚焦搜索（Spotlight）直接启动即可。
 
@@ -87,7 +87,22 @@
 > ```
 > **终端直达与浏览器互通：** 在桌面端顶栏点击 **「命令行」** 可一键安装 `~/.local/bin/paperdiff`，之后在任意论文目录终端运行 `paperdiff .` 即可直达该目录；顶栏还可一键点击 **「浏览器打开」** 共享同一本地端口。
 
-### Windows 用户（跨平台静默 Web 模式，无黑框终端）
+### Windows 用户（x64 独立 `Setup.exe` 安装版 & `Portable.zip` 便携版，推荐）
+
+无需安装 Python 或 Node.js（基于 Win10/11 系统内置 Edge WebView2 运行）：
+
+- **标准安装版（个人电脑推荐）**：前往 [GitHub Releases](https://github.com/maniac8/PaperDiff/releases) 下载 **`PaperDiff-v0.2.0-Windows-x64-Setup.exe`** 双击安装。默认仅当前用户安装（无需管理员弹窗，安装于 `%LOCALAPPDATA%\Programs\PaperDiff`），支持创建桌面快捷方式、可选将 `paperdiff` 命令加入 `PATH` 以及控制面板一键卸载。
+- **绿色便携版（高校机房 / U 盘 / 无管理员权限推荐）**：下载 **`PaperDiff-v0.2.0-Windows-x64-Portable.zip`** 解压至任意目录，双击 `PaperDiff.exe` 即可运行。包内附带 `portable.flag`，数据自动保存在同级 `data\` 目录（若介质只读则自动回退到 `%LOCALAPPDATA%\PaperDiff`）。
+
+> [!TIP]
+> **首次运行 SmartScreen 提示处理（开源未签名版常规提示）：** 开源免费软件未采购商业代码签名证书，Windows 首次运行时可能弹出“Windows 已保护你的电脑”，点击 **「更多信息」** → **「仍要运行」** 即可。你也可以用 PowerShell 对照 `SHA256SUMS.txt` 校验安装包完整性：
+> ```powershell
+> Get-FileHash .\PaperDiff-v0.2.0-Windows-x64-Setup.exe -Algorithm SHA256
+> ```
+> **PDF 导出与 WebView2 说明：** 导出审阅 PDF 会静默调用系统已安装的 Microsoft Edge 或 Chrome（零黑框闪现）；若极少数精简版 Windows 10 缺失 WebView2，按弹窗指引安装微软官方 [Edge WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) 即可。
+
+<details>
+<summary>Windows 源码部署 / 跨平台静默 Web 模式（`启动PaperDiff.bat`）</summary>
 
 **前置环境：**
 - **Python 3.11+** — 前往 [python.org](https://www.python.org/downloads/windows/) 安装 *(安装时请勾选 **“Add python.exe to PATH”**)*
@@ -121,8 +136,9 @@ python paperdiff\launch_desktop.py --status   # 查看运行端口与日志路�
 python paperdiff\launch_desktop.py --stop     # 优雅停止本地服务
 ```
 
-> [!TIP]
 > **获得独立桌面窗口体验（PWA）：** 在 **Microsoft Edge** 或 **Google Chrome** 打开 PaperDiff 后，点击地址栏右侧的 **「将此站点安装为应用」** 图标，即可将 PaperDiff 固定到 Windows 任务栏，以无地址栏独立窗口运行。
+
+</details>
 
 <details>
 <summary>更多启动方式（macOS 源码开发启动、Linux Web 模式、4 套官方演示案例快速体验）</summary>
@@ -201,10 +217,10 @@ PaperDiff 采用解耦的**四层本地优先学术文稿通用架构**，确保
 
 | 架构层次 | 核心技术栈 | 核心职责 |
 | :--- | :--- | :--- |
-| **1. 双渠道本地客户端** | `React 18` · `TypeScript` · `Tailwind CSS` · `KaTeX` · `Mermaid` · `pywebview` | 同一套 60 FPS 离线 SPA（`content-visibility: auto` + 4,000 条 KaTeX 缓存），同时驱动 macOS 原生桌面壳与跨平台 Web PWA |
+| **1. 双渠道本地客户端** | `React 18` · `TypeScript` · `Tailwind CSS` · `KaTeX` · `Mermaid` · `pywebview` | 同一套 60 FPS 离线 SPA（`content-visibility: auto` + 4,000 条 KaTeX 缓存），同时驱动 macOS `WKWebView`、Windows `Edge WebView2` 原生桌面壳与跨平台 Web PWA |
 | **2. 本地运行态与沙箱层** | `FastAPI` · `Uvicorn` · `SQLite` | 仅监听 `127.0.0.1` 回环地址，负责单实例端口协调、CLI 路径直达、`realpath` 本地目录防越界沙箱与 SHA-256 资产去重归档 |
 | **3. 语义解析、比对与审计核心** | `pylatexenc` · `python-docx` · `lxml` · `markdown-it-py` · `jieba` | 将 `.tex/.zip`、`.docx`、`.md` 转译为保留精确字符 Span 与 XML 锚点的三区无损 IR，驱动中英词级 DP 比对与四维事实守恒审计 |
-| **4. 无损回写与离线交付平面** | 外科 Span / XML 补丁器 · `WKWebView` / Chrome 离线 PDF | 将结构化修改定点回写至原 LaTeX 源码、Overleaf `.zip` 或原 `.docx` 模板（`_revised` + `.bak` 保护），并生成 100% 离线矢量 PDF 报告 |
+| **4. 无损回写与离线交付平面** | 外科 Span / XML 补丁器 · `WKWebView` / Edge·Chrome 离线 PDF | 将结构化修改定点回写至原 LaTeX 源码、Overleaf `.zip` 或原 `.docx` 模板（`_revised` + `.bak` 保护），并生成 100% 离线矢量 PDF 报告 |
 
 ---
 
@@ -220,7 +236,8 @@ PaperDiff 采用解耦的**四层本地优先学术文稿通用架构**，确保
 | **Chrome 单稿快速滚动** | **441 块 / 2,750 个 KaTeX 公式 / 56,986 px 文档高** | **P50 = 16.65 ms · P95 = 17.35 ms（锁定 60.0 FPS）** |
 | **Chrome 16 步连续拖拽缩放** | `1520px → 840px → 1480px` 跨响应式断点拖拽 | **P50 = 80.26 ms · P95 = 101.49 ms** |
 | **Chrome 双栏对比快速滚动** | 同等 441 块双栏 Diff 视图 | **P50 = 19.75 ms · P95 = 36.40 ms** |
-| **macOS 独立 `.dmg` 体积** | 完整 PyInstaller + React + 离线 KaTeX/Mermaid 运行包 | **46.7 MB**（通过 `hdiutil verify` 与签名冒烟测试） |
+| **macOS 独立 `.dmg` 体积** | 完整 PyInstaller + React + 离线 KaTeX/Mermaid 运行包 | **47.1 MB**（通过 `hdiutil verify`、自签名与冻结冒烟测试） |
+| **Windows x64 独立安装包体积** | PyInstaller `onedir` + Inno Setup 6 / 便携归档（`windows-latest` CI 实测） | **38.0 MB**（`Setup.exe`）· **44.0 MB**（`Portable.zip`，冻结冒烟全通过） |
 
 ---
 
@@ -229,7 +246,7 @@ PaperDiff 采用解耦的**四层本地优先学术文稿通用架构**，确保
 | 常见操作 | macOS / Linux | Windows (PowerShell) |
 | :--- | :--- | :--- |
 | **后台静默启动** | `python3 paperdiff/launch_desktop.py --daemon` | `python paperdiff\launch_desktop.py --daemon` |
-| **直达指定目录或稿件** | `paperdiff .` *(或 `launch_desktop.py /路径 --daemon`)* | `python paperdiff\launch_desktop.py D:\Papers\Draft --daemon` |
+| **直达指定目录或稿件** | `paperdiff .` *(或 `launch_desktop.py /路径 --daemon`)* | `paperdiff .` *(安装版 CLI)* 或 `python paperdiff\launch_desktop.py D:\Papers\Draft --daemon` |
 | **查看运行端口与日志** | `python3 paperdiff/launch_desktop.py --status` | `python paperdiff\launch_desktop.py --status` |
 | **优雅停止本地服务** | `python3 paperdiff/launch_desktop.py --stop` | `python paperdiff\launch_desktop.py --stop` |
 | **指定固定端口启动** | `python3 paperdiff/launch_desktop.py --port 8765 --daemon` | `python paperdiff\launch_desktop.py --port 8765 --daemon` |
@@ -240,10 +257,11 @@ PaperDiff 采用解耦的**四层本地优先学术文稿通用架构**，确保
 
 | 环境变量 | 默认位置 | 用途 |
 | :--- | :--- | :--- |
-| `PAPERDIFF_DATA_DIR` | 打包 macOS 版为 `~/Library/Application Support/PaperDiff`；源码运行为 `paperdiff/data/` | 存放 SQLite 数据库、去重插图缓存、`server.lock`、`window_state.json` 与轮转日志 `logs/server.log` |
+| `PAPERDIFF_DATA_DIR` | macOS 版：`~/Library/Application Support/PaperDiff`；Windows 安装版：`%LOCALAPPDATA%\PaperDiff`；Windows 便携版（含 `portable.flag`）：`./data/`；源码模式：`paperdiff/data/` | 存放 SQLite 数据库、去重插图缓存、`server.lock`、`window_state.json` 与轮转日志 `logs/server.log` |
 | `PAPERDIFF_PORT` | 自动分配（优先 `8765`） | 指定 `127.0.0.1` 优先监听端口 |
+| `PAPERDIFF_CHROME_PATH` | 自动探测（Edge / Chrome / Chromium） | 可选：手动指定无头 PDF 导出所用浏览器路径 |
 
-彻底卸载只需删除 `PaperDiff.app`（或克隆目录）并按需清理 `PAPERDIFF_DATA_DIR`。移除绑定项目或卸载软件**绝不会删除**你磁盘上原有的本地论文文件夹。
+彻底卸载只需删除 `PaperDiff.app`（macOS）、在 Windows「应用和功能」卸载（或直接删除便携版解压目录），并按需清理 `PAPERDIFF_DATA_DIR`。移除绑定项目或卸载软件**绝不会删除**你磁盘上原有的本地论文文件夹。
 
 </details>
 
@@ -270,7 +288,7 @@ PaperDiff 采用解耦的**四层本地优先学术文稿通用架构**，确保
 不会。PaperDiff 会归档原始 `.docx` 二进制并在原模板 XML 上做定点补丁（`backend/patcher/docx_patcher.py`），完整保留原有封面、字体、页眉页脚与表单边框，且支持导出干净版或原生 Word 红线修订版（`<w:ins>/<w:del>`）。
 
 ### Windows 有安装包吗？平时怎么用最方便？
-当前 `v0.1.0` 在 Windows 上推荐使用**跨平台静默 Web 模式**：首次配好 Python + Node 构建后，日常直接双击 `启动PaperDiff.bat` 即可无黑框静默启动，再在 Edge / Chrome 中点击「安装为应用」固定到任务栏即可。
+有！自 `v0.2.0` 起，GitHub Releases 同步提供 **`PaperDiff-v0.2.0-Windows-x64-Setup.exe`**（标准单机安装版，无需装 Python/Node，免管理员权限）和 **`PaperDiff-v0.2.0-Windows-x64-Portable.zip`**（绿色便携版，解压即用）。习惯浏览器模式或参与源码开发的用户仍可继续使用 `启动PaperDiff.bat` / `停止PaperDiff.bat`。
 
 ### 可以和 VS Code、LaTeX Workshop 或 Overleaf 配合使用吗？
 完全可以。在 PaperDiff 中绑定你的本地论文目录即可；平时照常在 VS Code 写稿或从 Overleaf 下载新版 `.zip` 放进目录，切回 PaperDiff 时会自动检测磁盘变更并支持一键对比任意两版。
@@ -283,8 +301,8 @@ PaperDiff 采用解耦的**四层本地优先学术文稿通用架构**，确保
 ## 本地开发与测试
 
 ```bash
-# 1. 后端与真实 Chrome CDP 端到端全量测试（59 项）
-cd paperdiff && python3 -m pytest -W ignore -v
+# 1. 后端与真实 Chrome CDP 端到端全量测试（76 项）
+cd paperdiff && python3 -m pytest -W ignore -v --ignore=tests/test_performance_benchmark.py
 
 # 2. 前端纯函数单元测试（14 项）与 TypeScript 严格构建
 cd paperdiff/frontend
@@ -293,13 +311,16 @@ npm run build
 
 # 3. 构建 macOS 独立 .app 与签名 .dmg 安装包（约 47 MB）
 /opt/homebrew/bin/python3.12 -u paperdiff/packaging/build_macos_dmg.py
+
+# 4. 构建 Windows x64 Setup.exe 与 Portable.zip（需 Windows + Inno Setup 6）
+python -u paperdiff/packaging/build_windows_release.py
 ```
 
 ### 目录结构
 
 ```text
 .
-├── .github/                      # CI、自动发版 DMG 流水线、PR/Issue 模板与 Dependabot
+├── .github/                      # CI、macOS + Windows 双端原子发布流水线、模板与 Dependabot
 ├── assets/                       # 浅/深色矢量系统架构图与实机演示截图
 ├── branding/release/             # Split Sheet 品牌矢量图标与双态横幅
 ├── examples/                     # 4 套官方合成演示案例（Markdown / Word / LaTeX / Overleaf ZIP）
@@ -313,12 +334,12 @@ npm run build
 ├── 启动PaperDiff.command / .bat  # macOS & Windows 一键静默启动脚本
 ├── 停止PaperDiff.command / .bat  # macOS & Windows 一键停止脚本
 └── paperdiff/
-    ├── desktop_app.py            # macOS 原生桌面壳入口（pywebview / WKWebView）
+    ├── desktop_app.py            # 跨平台原生桌面壳入口（macOS WKWebView / Windows Edge WebView2）
     ├── launch_desktop.py         # 跨平台 Web 后台启动器与 CLI 路径入口
     ├── backend/                  # FastAPI 本地服务、AST 解析、比对、审计、写回与 PDF 导出
     ├── frontend/                 # React 18 + TypeScript + Tailwind 前端与 PWA 资源
-    ├── packaging/                # PyInstaller 配置与 macOS .dmg 打包脚本
-    └── tests/                    # 59 项自动化与 Chrome CDP 端到端测试
+    ├── packaging/                # macOS .dmg 与 Windows Setup.exe / Portable.zip 打包脚本与配置
+    └── tests/                    # 76 项自动化、Windows 兼容与 Chrome CDP 端到端测试
 ```
 
 ## 参与贡献与开源协议

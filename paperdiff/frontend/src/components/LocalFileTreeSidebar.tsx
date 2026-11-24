@@ -107,9 +107,9 @@ export const LocalFileTreeSidebar: React.FC<LocalFileTreeSidebarProps> = ({
   };
 
   const rootBasename = useMemo(() => {
-    const p = (project.local_root_path || '').replace(/\/+$/, '');
-    const idx = p.lastIndexOf('/');
-    return idx >= 0 ? p.slice(idx + 1) : p || '本地目录';
+    const p = (project.local_root_path || '').replace(/[\\/]+$/, '');
+    const parts = p.split(/[\\/]/).filter(Boolean);
+    return parts.length > 0 ? parts[parts.length - 1] : p || '本地目录';
   }, [project.local_root_path]);
 
   const renderNodes = (nodes: LocalTreeNode[], depth = 0): React.ReactNode =>

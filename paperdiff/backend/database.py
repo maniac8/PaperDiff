@@ -23,13 +23,9 @@ from typing import Any, Generator
 
 
 def _resolve_data_dir() -> Path:
-    env_dir = os.environ.get("PAPERDIFF_DATA_DIR", "").strip()
-    if env_dir:
-        return Path(env_dir).expanduser().resolve()
-    if getattr(sys, "frozen", False):
-        # Standard macOS Application Support directory for packaged .app bundle
-        return Path.home() / "Library" / "Application Support" / "PaperDiff"
-    return Path(__file__).resolve().parent.parent / "data"
+    from .runtime_state import resolve_data_dir
+
+    return resolve_data_dir()
 
 
 DATA_DIR = _resolve_data_dir()

@@ -4,7 +4,8 @@
 
 | Version | Supported |
 | :--- | :--- |
-| `0.1.x` | Yes |
+| `0.2.x` | Yes |
+| `0.1.x` | Security fixes only |
 | `< 0.1.0` | No |
 
 ## Local-First Security & Privacy Model

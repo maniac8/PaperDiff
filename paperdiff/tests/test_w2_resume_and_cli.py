@@ -139,7 +139,12 @@ def test_w2_t04_api_local_open_path_idempotent_readonly_and_errors(tmp_path: Pat
     standalone_md.write_text("# Notes\n\nBody.\n", encoding="utf-8")
 
     symlink_alias = tmp_path / "transformer_link"
-    os.symlink(paper_dir, symlink_alias)
+    has_symlink = False
+    try:
+        os.symlink(paper_dir, symlink_alias)
+        has_symlink = True
+    except OSError:
+        has_symlink = False
 
     orig_paper_hashes = _sha256_tree(paper_dir)
     orig_standalone_hashes = _sha256_tree(standalone_dir)
@@ -155,8 +160,9 @@ def test_w2_t04_api_local_open_path_idempotent_readonly_and_errors(tmp_path: Pat
         assert d1["handoff_path"] == f"/?project={d1['project_id']}"
         pid_paper = d1["project_id"]
 
-        # 2. Repeat via symlink alias & trailing slash -> idempotent reuse (created=False, zero duplicates)
-        r2 = client.post("/api/local/open-path", json={"path": str(symlink_alias) + "/"})
+        # 2. Repeat via symlink alias (if supported) or trailing separator -> idempotent reuse (created=False)
+        repeat_target = (str(symlink_alias) if has_symlink else str(paper_dir)) + os.sep
+        r2 = client.post("/api/local/open-path", json={"path": repeat_target})
         assert r2.status_code == 200
         d2 = r2.json()
         assert d2["created"] is False
@@ -219,6 +225,7 @@ def test_w2_t05_cli_path_launch_reuse_readonly_and_bad_path_exit(tmp_path: Path)
     env["PAPERDIFF_DATA_DIR"] = str(data_dir)
     env["PAPERDIFF_PORT"] = str(port)
     env["PAPERDIFF_NO_BROWSER"] = "1"
+    env["PYTHONUTF8"] = "1"
     launcher = str(PAPERDIFF_ROOT / "launch_desktop.py")
 
     try:
@@ -228,6 +235,8 @@ def test_w2_t05_cli_path_launch_reuse_readonly_and_bad_path_exit(tmp_path: Path)
             env=env,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=10,
         )
         assert r_bad.returncode == 1
@@ -239,6 +248,8 @@ def test_w2_t05_cli_path_launch_reuse_readonly_and_bad_path_exit(tmp_path: Path)
             env=env,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=20,
         )
         assert r_dir.returncode == 0, f"CLI dir launch failed: {r_dir.stdout} {r_dir.stderr}"
@@ -255,6 +266,8 @@ def test_w2_t05_cli_path_launch_reuse_readonly_and_bad_path_exit(tmp_path: Path)
             env=env,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=15,
         )
         assert r_file.returncode == 0, f"CLI file launch failed: {r_file.stdout} {r_file.stderr}"
@@ -278,23 +291,27 @@ def test_w2_t06_cli_installer_uninstaller_and_readonly_fallback(tmp_path: Path) 
     from backend import runtime_state
 
     bin_dir = tmp_path / ".local" / "bin"
+    other_path = f"/usr/bin{os.pathsep}/bin"
 
     # 1. Initially not installed
-    st0 = runtime_state.get_cli_install_status(bin_dir=bin_dir, path_env="/usr/bin:/bin")
+    st0 = runtime_state.get_cli_install_status(bin_dir=bin_dir, path_env=other_path)
     assert st0["installed"] is False
     assert st0["in_path"] is False
 
-    # 2. Install into bin_dir -> 0755 executable script + PATH hint since bin_dir not in path_env
-    res_in = runtime_state.install_cli_command(bin_dir=bin_dir, path_env="/usr/bin:/bin")
+    # 2. Install into bin_dir -> executable script + PATH hint since bin_dir not in path_env
+    res_in = runtime_state.install_cli_command(bin_dir=bin_dir, path_env=other_path)
     assert res_in["installed"] is True
     script_path = Path(res_in["script_path"])
     assert script_path.exists()
-    assert stat.S_IMODE(script_path.stat().st_mode) & 0o111
+    if os.name == "posix":
+        assert stat.S_IMODE(script_path.stat().st_mode) & 0o111
+    else:
+        assert script_path.name == "paperdiff.cmd"
     assert res_in["in_path"] is False
     assert "PATH" in res_in["path_hint"]
 
     # When bin_dir IS in PATH -> in_path=True
-    st1 = runtime_state.get_cli_install_status(bin_dir=bin_dir, path_env=f"{bin_dir}:/usr/bin")
+    st1 = runtime_state.get_cli_install_status(bin_dir=bin_dir, path_env=f"{bin_dir}{os.pathsep}/usr/bin")
     assert st1["installed"] is True and st1["in_path"] is True
 
     # 3. Uninstall removes wrapper cleanly
@@ -302,17 +319,17 @@ def test_w2_t06_cli_installer_uninstaller_and_readonly_fallback(tmp_path: Path) 
     assert res_un["installed"] is False and res_un["removed"] is True
     assert not script_path.exists()
 
-    # 4. Read-only directory returns clean Chinese error without crashing
-    ro_dir = tmp_path / "readonly_bin"
-    ro_dir.mkdir()
-    os.chmod(ro_dir, 0o555)
-    try:
-        if os.geteuid() != 0:
+    # 4. Read-only directory returns clean Chinese error without crashing (POSIX non-root only)
+    if os.name == "posix" and getattr(os, "geteuid", lambda: 1)() != 0:
+        ro_dir = tmp_path / "readonly_bin"
+        ro_dir.mkdir()
+        os.chmod(ro_dir, 0o555)
+        try:
             res_ro = runtime_state.install_cli_command(bin_dir=ro_dir, path_env="/usr/bin")
             assert res_ro["installed"] is False
             assert res_ro.get("error")
-    finally:
-        os.chmod(ro_dir, 0o755)
+        finally:
+            os.chmod(ro_dir, 0o755)
 
     # 5. DesktopBridge exposes CLI installer methods
     bridge = desktop_app.DesktopBridge(data_dir=tmp_path)

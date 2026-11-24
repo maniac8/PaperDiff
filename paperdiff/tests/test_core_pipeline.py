@@ -145,7 +145,7 @@ def test_diff_orphan_stopword_smoothing_preserves_atoms() -> None:
 
 def test_api_v14_assets_bib_ack_alerts_and_custom_lexicon() -> None:
     with TestClient(app) as client:
-        assert client.get("/api/health").json()["version"] == "0.1.0"
+        assert client.get("/api/health").json()["version"] == "0.2.0"
 
         # Verify asset endpoint serves real extracted PNG from Overleaf zip!
         _, _, m1 = extract_latex_zip_with_assets((TEST_CASES / "02_en_latex_overleaf_zip/overleaf_project_v1.zip").read_bytes())
