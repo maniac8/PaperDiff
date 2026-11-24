@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 190" width="720" height="190">
+  <rect width="720" height="190" rx="14" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="360" y="30" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="14" font-weight="600" fill="#0F172A">AdaptRoute: 长上下文自适应 KV-Cache 稀疏路由流水线</text>
+  <rect x="26" y="56" width="142" height="86" rx="10" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.5"/>
+  <text x="97" y="88" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="13" font-weight="600" fill="#0F172A">1. 块级显著性评分</text>
+  <text x="97" y="110" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" fill="#64748B">Query-Key 粗粒度打分</text>
+  <text x="97" y="128" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" fill="#64748B">128K 上下文分块</text>
+
+  <path d="M168 99 L198 99" stroke="#2563EB" stroke-width="2" fill="none"/>
+  <polygon points="198,94 208,99 198,104" fill="#2563EB"/>
+
+  <rect x="208" y="56" width="146" height="86" rx="10" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.8"/>
+  <text x="281" y="88" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="13" font-weight="600" fill="#1D4ED8">2. 动态令牌预算路由</text>
+  <text x="281" y="110" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" fill="#3B82F6">层级熵自适应分配</text>
+  <text x="281" y="128" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" fill="#3B82F6">预算上限 B_l</text>
+
+  <path d="M354 99 L384 99" stroke="#2563EB" stroke-width="2" fill="none"/>
+  <polygon points="384,94 394,99 384,104" fill="#2563EB"/>
+
+  <rect x="394" y="56" width="142" height="86" rx="10" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.5"/>
+  <text x="465" y="88" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="13" font-weight="600" fill="#0F172A">3. 稀疏注意力核</text>
+  <text x="465" y="110" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" fill="#64748B">FlashAttention 融合</text>
+  <text x="465" y="128" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" fill="#64748B">保留 Sink + Top-k 块</text>
+
+  <path d="M536 99 L566 99" stroke="#059669" stroke-width="2" fill="none"/>
+  <polygon points="566,94 576,99 566,104" fill="#059669"/>
+
+  <rect x="576" y="56" width="118" height="86" rx="10" fill="#ECFDF5" stroke="#059669" stroke-width="1.8"/>
+  <text x="635" y="88" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="13" font-weight="600" fill="#047857">4. 推理输出</text>
+  <text x="635" y="110" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" fill="#059669">显存降低 73.1%</text>
+  <text x="635" y="128" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" fill="#059669">精度近零损</text>
+
+  <text x="360" y="172" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" fill="#64748B">Fig. 1 · Fictional AI Benchmark Example for PaperDiff Official Showcase</text>
+</svg>

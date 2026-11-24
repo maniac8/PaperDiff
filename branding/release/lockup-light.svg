@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 96" width="420" height="96">
+  <g transform="translate(12 12) scale(3)">
+    <rect x="0.5" y="0.5" width="23" height="23" rx="5.4" fill="#0D1117"/>
+    <g transform="translate(12 12) scale(0.68) translate(-12 -12)"><rect x="2.2" y="5.8" width="8.6" height="15.4" rx="1.6" fill="#FFFFFF"/><rect x="3.55" y="8.45" width="4.13" height="1.30" rx="0.65" fill="#8C959F"/><rect x="3.55" y="10.95" width="4.96" height="1.30" rx="0.65" fill="#8C959F"/><rect x="3.55" y="13.55" width="5.90" height="2.00" rx="1.00" fill="#0D1117"/><rect x="3.55" y="16.95" width="3.42" height="1.30" rx="0.65" fill="#8C959F"/><rect x="13.2" y="2.8" width="8.6" height="15.4" rx="1.6" fill="#FFFFFF"/><rect x="14.55" y="5.45" width="4.13" height="1.30" rx="0.65" fill="#8C959F"/><rect x="14.55" y="7.95" width="4.96" height="1.30" rx="0.65" fill="#8C959F"/><rect x="14.55" y="10.55" width="5.90" height="2.00" rx="1.00" fill="#2563EB"/><rect x="14.55" y="13.95" width="3.42" height="1.30" rx="0.65" fill="#8C959F"/></g>
+  </g>
+  <text x="104" y="48" font-family="-apple-system,'SF Pro Display','Helvetica Neue',sans-serif" font-size="34" font-weight="800" letter-spacing="-0.6" fill="#0D1117">Paper<tspan fill="#2563EB">Diff</tspan></text>
+  <line x1="274" y1="22" x2="274" y2="52" stroke="#57606A" stroke-width="1.6" opacity="0.45"/>
+  <text x="292" y="48" font-family="'STSongti-SC-Bold','Songti SC',serif" font-size="32" font-weight="700" letter-spacing="2" fill="#0D1117">对稿</text>
+  <text x="105" y="76" font-family="-apple-system,'SF Pro Text','PingFang SC',sans-serif" font-size="13.5" font-weight="500" letter-spacing="0.6" fill="#57606A">本地学术文稿阅读 · 版本比对 · 事实守恒审计</text>
+</svg>

@@ -1,0 +1,80 @@
+# ==============================================================================
+# 对稿 · PaperDiff Studio — GitHub .gitignore
+# ==============================================================================
+
+# --- Local User Data, Runtime Locks & Archived Papers (NEVER COMMIT!) ---
+paperdiff/data/
+server.lock
+server.lock.init
+window_state.json
+*.paperdiff.bak
+*.paperdiff.bak*
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# --- Python Environments & Caches ---
+paperdiff/.venv_pkg/
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# --- Frontend Node / Vite Build Outputs ---
+paperdiff/frontend/node_modules/
+paperdiff/frontend/dist/
+paperdiff/frontend/*.tsbuildinfo
+paperdiff/frontend/.vite/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- PyInstaller & macOS Release Artifacts ---
+build/
+dist/
+paperdiff/build/
+paperdiff/dist/
+paperdiff/packaging/build_work/
+paperdiff/packaging/dist_out/
+paperdiff/packaging/*.iconset/
+/release/
+*.spec.bak
+
+# --- Internal Product Design Docs, Drafts & Branding Explorations (Keep local) ---
+PRD.md
+docs/
+需求/
+branding/candidates/
+branding/v2/
+
+# --- Local Secrets & Environment Variables ---
+.env
+.env.*
+!.env.example
+
+# --- macOS / Office / IDE / Temp Files ---
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+~$*.docx
+~$*.doc
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.log
+tmp/
+.tmp/

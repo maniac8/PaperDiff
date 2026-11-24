@@ -1,0 +1,154 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-publish:
+    name: Verify, Build macOS DMG & Publish Release
+    runs-on: macos-14
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG_NAME: ${{ github.ref_name }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify tag is on main and version numbers match
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
+            echo "::error::Tag ${TAG_NAME} is not an ancestor of origin/main. Merge dev -> main first, then tag on main."
+            exit 1
+          fi
+
+          python3 - << 'EOF'
+          import json, os, re
+          from pathlib import Path
+
+          tag = os.environ["TAG_NAME"]
+          expected = tag.lstrip("v").split("-", 1)[0]
+
+          rt = Path("paperdiff/backend/runtime_state.py").read_text(encoding="utf-8")
+          m_rt = re.search(r'APP_VERSION\s*=\s*"([^"]+)"', rt)
+          pkg = json.loads(Path("paperdiff/frontend/package.json").read_text(encoding="utf-8"))["version"]
+          dmg = Path("paperdiff/packaging/build_macos_dmg.py").read_text(encoding="utf-8")
+          m_dmg = re.search(r'VERSION\s*=\s*"([^"]+)"', dmg)
+          spec = Path("paperdiff/packaging/PaperDiff.spec").read_text(encoding="utf-8")
+          m_spec = re.search(r'"CFBundleShortVersionString":\s*"([^"]+)"', spec)
+
+          vals = {
+              "runtime_state.APP_VERSION": m_rt.group(1) if m_rt else None,
+              "frontend/package.json": pkg,
+              "build_macos_dmg.py": m_dmg.group(1) if m_dmg else None,
+              "PaperDiff.spec": m_spec.group(1) if m_spec else None,
+          }
+          mismatches = {k: v for k, v in vals.items() if v != expected}
+          if mismatches:
+              raise SystemExit(f"Version mismatch for tag {tag} (expected {expected}): {vals}")
+          print(f"Version parity verified: {tag} === {vals}")
+          EOF
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: paperdiff/frontend/package-lock.json
+
+      - name: Install frontend dependencies and run unit tests
+        working-directory: paperdiff/frontend
+        run: |
+          npm ci
+          node --experimental-strip-types --test src/utils/*.test.mjs
+          npm run build
+
+      - name: Create isolated packaging venv and run pytest
+        run: |
+          python3 -m venv paperdiff/.venv_pkg
+          paperdiff/.venv_pkg/bin/pip install --upgrade pip
+          paperdiff/.venv_pkg/bin/pip install -r paperdiff/requirements-dev.txt
+          cd paperdiff
+          .venv_pkg/bin/python -m pytest -W ignore -v --ignore=tests/test_performance_benchmark.py
+
+      - name: Build and verify standalone macOS ARM64 DMG
+        run: paperdiff/.venv_pkg/bin/python -u paperdiff/packaging/build_macos_dmg.py
+
+      - name: Extract release notes from CHANGELOG.md
+        id: notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - << 'EOF'
+          import os, re
+          from pathlib import Path
+
+          tag = os.environ["TAG_NAME"]
+          ver = tag.lstrip("v")
+          is_pre = "-" in ver
+          changelog = Path("CHANGELOG.md").read_text(encoding="utf-8").replace("\r\n", "\n")
+          m = re.search(rf"^## \[{re.escape(ver)}\][^\n]*$", changelog, re.M)
+          gh_out = Path(os.environ["GITHUB_OUTPUT"])
+
+          if not m:
+              if is_pre:
+                  gh_out.write_text("has_notes=false\nis_prerelease=true\n", encoding="utf-8")
+                  raise SystemExit(0)
+              raise SystemExit(f'Missing "## [{ver}]" section in CHANGELOG.md for stable release {tag}.')
+
+          rest = changelog[m.end():]
+          nxt = re.search(r"\n## \[", rest)
+          body = (rest if not nxt else rest[:nxt.start()]).strip()
+          body = re.sub(r"(?:\n+---+\s*)+$", "", body).strip()
+          if not body:
+              raise SystemExit(f'CHANGELOG.md section "## [{ver}]" is empty.')
+
+          Path("/tmp/release-notes.md").write_text(body + "\n", encoding="utf-8")
+          with gh_out.open("a", encoding="utf-8") as f:
+              f.write(f"has_notes=true\nis_prerelease={'true' if is_pre else 'false'}\n")
+          print(f"Extracted {len(body)} chars of release notes for {tag}.")
+          EOF
+
+      - name: Publish GitHub Release with macOS DMG & SHA256SUMS
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "${TAG_NAME}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "Release ${TAG_NAME} already exists; skipping creation."
+            exit 0
+          fi
+
+          ARGS=(release create "${TAG_NAME}" release/PaperDiff-*.dmg release/SHA256SUMS.txt --repo "${GITHUB_REPOSITORY}" --verify-tag --title "PaperDiff ${TAG_NAME}")
+          if [ "${{ steps.notes.outputs.is_prerelease }}" = "true" ]; then
+            ARGS+=(--prerelease)
+          else
+            ARGS+=(--latest)
+          fi
+
+          if [ "${{ steps.notes.outputs.has_notes }}" = "true" ]; then
+            ARGS+=(--notes-file /tmp/release-notes.md)
+          else
+            ARGS+=(--generate-notes)
+          fi
+
+          gh "${ARGS[@]}"

@@ -1,0 +1,17 @@
+\documentclass{article}
+\title{Stress Testing \textbf{LaTeX} Parsing: Edge Cases \& Tricky Macros}
+\begin{document}
+
+\section{Hard Line Wrap and Comment Immunity}
+This paragraph is deliberately wrapped at narrow column widths in version one so that line breaks appear every few words, including an escaped 15.2\% percent sign right before an inline comment and a \textbf{\emph{nested formatted phrase}} plus a \href{https://example.org}{clickable link}.
+
+\section{Complex Citations, Math, and Heavy Rewrites}
+Multiple citations with optional page notes~\citep[see][p.~14]{alpha2023,beta2024} and cross-references to Eq.~\eqref{eq:core} and Fig.~\ref{fig:edge} must remain intact alongside inline math $J(\theta) = \sum_{i=1}^{N} (x_i - y_i)^2$.
+
+\begin{align*}
+\mathcal{L}(\theta) &= \frac{1}{N}\sum_{i=1}^N \|f_\theta(x_i) - y_i\|_2^2 + \lambda_{\text{reg}} \|\theta\|_1
+\end{align*}
+
+Here we drastically rewrite the final paragraph with concise wording so that lexical overlap falls near twenty percent while still testing whether block pairing holds.
+
+\end{document}

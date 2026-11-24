@@ -1,0 +1,71 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,graphicx}
+\title{Entropy-Guided Adaptive Token-Budget Routing for Long-Context Transformers}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Understanding how attention mass concentrates across ultra-long sequences is of paramount importance for scaling modern Transformer inference. However, existing KV-Cache eviction paradigms exhibit fundamental limitations because fixed-window pruning fails to retain transient long-range retrieval anchors. In this study, we delve into an entropy-guided adaptive routing (AdaptRoute) framework that leverages layer-wise attention priors to guide dynamic block selection. Across a benchmark of 88 reasoning tasks ($n = 88$, 128K context), our framework reduces perplexity gap (PPL) from 0.412 to 0.286 nats ($p < 0.001$), offering a comprehensive and auditable blueprint for memory-constrained LLM serving.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+Transformer attention weights span orders of magnitude across early syntactic layers and deep retrieval heads~\cite{vaswani2017neurips,dao2022neurips}. Moreover, tight GPU memory budgets make exhaustive KV-Cache retention infeasible in real-world deployments. Traditional eviction protocols rely on uniform or sliding token windows, meaning a large fraction of memory budget is spent on low-entropy filler tokens while missing long-range reasoning anchors, as illustrated in Fig.~\ref{fig:profile_overview}.
+
+Furthermore, purely heuristic pruning methods struggle under tight cache budgets ($N \le 8$ blocks per head) because they lack prior knowledge of head specialization and chain-of-thought dependency spans~\cite{wei2022neurips}. Notably, coupling a reduced-order entropy prior with sequential expected information gain (EIG) selection may suggest a practical path toward higher accuracy without increasing GPU memory.
+
+\section{Methodology}
+\label{sec:method}
+
+\subsection{Hierarchical Attention Entropy Prior}
+We model block importance $c(z) = \log_{10} C(z)$ over block index $z \in [0, 500]$ as a Gaussian process whose mean function $m_\phi(z)$ is anchored by a layer-wise attention balance:
+
+\begin{equation}
+\label{eq:transport}
+\frac{\partial}{\partial z}\!\left(w_s(z)\, C(z) - K_z(z)\frac{\partial C(z)}{\partial z}\right) = S_{\text{head}}(z) - \lambda_{\text{decay}} C(z),
+\end{equation}
+
+where $w_s(z)$ denotes the positional decay velocity, $K_z(z)$ is cross-block diffusion, and the prior variance satisfies $\sigma_z^2 = 0.64$.
+
+\subsection{Sequential Expected Information Gain}
+At each decode step $t$, the AdaptRoute policy selects the next key--value block $z_t^\star$ by maximizing the mutual information between the block logit $y_t$ and the full attention output $\mathbf{c}$:
+
+\begin{equation}
+\label{eq:eig}
+z_t^\star = \arg\max_{z \in \mathcal{Z}} \; \mathbb{E}_{p(y \mid z, \mathcal{D}_{t-1})}\!\left[ D_{\text{KL}}\!\left(p(\mathbf{c} \mid \mathcal{D}_{t-1}, z, y) \,\|\, p(\mathbf{c} \mid \mathcal{D}_{t-1})\right) \right].
+\end{equation}
+
+This paragraph describes our operational GPU memory cost model: each deep layer above 200 blocks incurs a bandwidth penalty proportional to cache depth, $\eta_{\text{cost}}(z) = 1 + 0.36 (z / 500)$, ensuring that distant blocks are queried only when expected distortion reduction outweighs latency cost.
+
+\section{Experiments and Results}
+\label{sec:results}
+
+We evaluate AdaptRoute against uniform pruning, sliding-window eviction, and unconstrained top-k caching across 88 benchmark tasks summarized in Table~\ref{tab:ablation}. Under an 8-block budget, AdaptRoute achieves a PPL gap of 0.286 compared to 0.412 for uniform eviction (a 30.6\% reduction, $p < 0.001$) and improves long-range needle retrieval accuracy from 61.5\% to 84.2\%.
+
+\begin{figure}[t]
+\caption{Comparison of long-context reasoning accuracy under an 8-block KV-Cache budget across uniform, sliding-window, and entropy-guided AdaptRoute policies.}
+\label{fig:profile_overview}
+\end{figure}
+
+\begin{table}[t]
+\caption{Quantitative ablation of entropy prior, cost weighting, and block budget across $n = 88$ tasks.}
+\label{tab:ablation}
+\begin{tabular}{lccc}
+\toprule
+Strategy & Block Budget & PPL Gap & Retrieval Acc. (\%) \\
+\midrule
+Uniform & 8 & 0.412 & 61.5 \\
+Sliding Window & 8 & 0.368 & 68.4 \\
+AdaptRoute (Ours) & 8 & \textbf{0.286} & \textbf{84.2} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Discussion}
+\label{sec:discussion}
+
+Our results indicate that embedding layer-wise entropy structure into sequential block routing substantially narrows output distortion at 128K sequence lengths. Under the stated single-host serving assumptions, the method provides calibrated latency budgets suitable for practical LLM deployment.
+
+\end{document}

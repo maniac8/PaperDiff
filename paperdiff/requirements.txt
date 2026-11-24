@@ -1,0 +1,25 @@
+# ==============================================================================
+# PaperDiff Studio v0.1.0 — Core Runtime Dependencies
+# All packages strictly conform to permissive licenses (MIT / BSD / Apache-2.0 / PSF).
+# Zero GPL/AGPL dependencies; zero heavy scientific stacks (no numpy/scipy/pandas).
+# ==============================================================================
+
+# Web & Local Embedded API Server
+fastapi>=0.115.0,<1.0.0
+uvicorn>=0.30.0,<1.0.0
+python-multipart>=0.0.9,<1.0.0
+pydantic>=2.7.0,<3.0.0
+
+# Open-Source AST Academic Parsers & Bilingual Tokenizer
+markdown-it-py>=3.0.0,<5.0.0
+mdit-py-plugins>=0.4.2,<1.0.0
+pylatexenc>=2.10,<4.0
+python-docx>=1.1.2,<2.0.0
+lxml>=5.0.0,<7.0.0
+jieba>=0.42.1,<1.0.0
+
+# macOS Native Desktop Shell (Optional for Web-Only Mode; Required for desktop_app.py)
+pywebview>=5.1,<7.0
+pyobjc-core>=10.0; sys_platform == "darwin"
+pyobjc-framework-Cocoa>=10.0; sys_platform == "darwin"
+pyobjc-framework-WebKit>=10.0; sys_platform == "darwin"

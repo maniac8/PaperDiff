@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: frontend (unit tests & build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: paperdiff/frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: paperdiff/frontend
+        run: npm ci
+
+      - name: Run frontend unit tests
+        working-directory: paperdiff/frontend
+        run: node --experimental-strip-types --test src/utils/*.test.mjs
+
+      - name: Typecheck and production build
+        working-directory: paperdiff/frontend
+        run: npm run build
+
+  backend:
+    name: backend (pytest & headless Chrome E2E)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            paperdiff/requirements.txt
+            paperdiff/requirements-dev.txt
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: paperdiff/frontend/package-lock.json
+
+      - name: Install Python dependencies
+        run: pip install -r paperdiff/requirements-dev.txt
+
+      - name: Build frontend SPA for E2E tests
+        working-directory: paperdiff/frontend
+        run: npm ci && npm run build
+
+      - name: Run backend & E2E test suite
+        working-directory: paperdiff
+        run: python -m pytest -W ignore -v --ignore=tests/test_performance_benchmark.py

@@ -1,0 +1,22 @@
+# Enforce consistent cross-platform line endings across macOS, Linux, and Windows
+* text=auto eol=lf
+
+# Windows batch scripts MUST use CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# macOS / POSIX shell scripts MUST use LF
+*.command text eol=lf
+*.sh text eol=lf
+
+# Binary assets & archive fixtures
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.icns binary
+*.woff2 binary
+*.docx binary
+*.zip binary
+*.pdf binary

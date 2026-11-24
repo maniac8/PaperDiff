@@ -1,0 +1,25 @@
+name: Feature Request
+description: Suggest a new parser capability, audit rule, export option, or workflow improvement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Note: PaperDiff intentionally stays **100% local-first**, **zero-telemetry**, **permissive-license only** (MIT/BSD/Apache-2.0/ISC/PSF), and focused on source-level formats (LaTeX, Word `.docx`, Markdown).
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Workflow Need
+      description: What academic reading, diffing, or revision pain point would this solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution
+      description: Describe how you would like this to behave.
+    validations:
+      required: true

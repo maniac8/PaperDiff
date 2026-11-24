@@ -1,0 +1,58 @@
+name: Bug Report
+description: Report a parsing, diff, export, or startup issue in PaperDiff
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue. **Please never upload private or unpublished manuscripts**—use a minimal anonymized snippet instead.
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Operating System & Launch Mode
+      options:
+        - macOS (Apple Silicon) — Native .dmg App
+        - macOS (Apple Silicon / Intel) — Web Mode
+        - Windows — Web Mode
+        - Linux — Web Mode
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: PaperDiff Version
+      placeholder: e.g. v0.1.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: format
+    attributes:
+      label: Document Format (if applicable)
+      options:
+        - LaTeX (.tex / .ltx)
+        - Overleaf Archive (.zip)
+        - Word (.docx)
+        - Markdown / Plain Text (.md / .txt)
+        - General / Startup / UI
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the bug and what you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal Reproduction Steps / Anonymized Snippet
+      description: Include steps to reproduce or a small anonymized LaTeX/Markdown snippet if possible.
+    validations:
+      required: false
