@@ -217,10 +217,10 @@ PaperDiff 采用解耦的**四层本地优先学术文稿通用架构**，确保
 
 | 架构层次 | 核心技术栈 | 核心职责 |
 | :--- | :--- | :--- |
-| **1. 双渠道本地客户端** | `React 18` · `TypeScript` · `Tailwind CSS` · `KaTeX` · `Mermaid` · `pywebview` | 同一套 60 FPS 离线 SPA（`content-visibility: auto` + 4,000 条 KaTeX 缓存），同时驱动 macOS 原生桌面壳与跨平台 Web PWA |
+| **1. 双渠道本地客户端** | `React 18` · `TypeScript` · `Tailwind CSS` · `KaTeX` · `Mermaid` · `pywebview` | 同一套 60 FPS 离线 SPA（`content-visibility: auto` + 4,000 条 KaTeX 缓存），同时驱动 macOS `WKWebView`、Windows `Edge WebView2` 原生桌面壳与跨平台 Web PWA |
 | **2. 本地运行态与沙箱层** | `FastAPI` · `Uvicorn` · `SQLite` | 仅监听 `127.0.0.1` 回环地址，负责单实例端口协调、CLI 路径直达、`realpath` 本地目录防越界沙箱与 SHA-256 资产去重归档 |
 | **3. 语义解析、比对与审计核心** | `pylatexenc` · `python-docx` · `lxml` · `markdown-it-py` · `jieba` | 将 `.tex/.zip`、`.docx`、`.md` 转译为保留精确字符 Span 与 XML 锚点的三区无损 IR，驱动中英词级 DP 比对与四维事实守恒审计 |
-| **4. 无损回写与离线交付平面** | 外科 Span / XML 补丁器 · `WKWebView` / Chrome 离线 PDF | 将结构化修改定点回写至原 LaTeX 源码、Overleaf `.zip` 或原 `.docx` 模板（`_revised` + `.bak` 保护），并生成 100% 离线矢量 PDF 报告 |
+| **4. 无损回写与离线交付平面** | 外科 Span / XML 补丁器 · `WKWebView` / Edge·Chrome 离线 PDF | 将结构化修改定点回写至原 LaTeX 源码、Overleaf `.zip` 或原 `.docx` 模板（`_revised` + `.bak` 保护），并生成 100% 离线矢量 PDF 报告 |
 
 ---
 
@@ -236,7 +236,8 @@ PaperDiff 采用解耦的**四层本地优先学术文稿通用架构**，确保
 | **Chrome 单稿快速滚动** | **441 块 / 2,750 个 KaTeX 公式 / 56,986 px 文档高** | **P50 = 16.65 ms · P95 = 17.35 ms（锁定 60.0 FPS）** |
 | **Chrome 16 步连续拖拽缩放** | `1520px → 840px → 1480px` 跨响应式断点拖拽 | **P50 = 80.26 ms · P95 = 101.49 ms** |
 | **Chrome 双栏对比快速滚动** | 同等 441 块双栏 Diff 视图 | **P50 = 19.75 ms · P95 = 36.40 ms** |
-| **macOS 独立 `.dmg` 体积** | 完整 PyInstaller + React + 离线 KaTeX/Mermaid 运行包 | **46.7 MB**（通过 `hdiutil verify` 与签名冒烟测试） |
+| **macOS 独立 `.dmg` 体积** | 完整 PyInstaller + React + 离线 KaTeX/Mermaid 运行包 | **47.1 MB**（通过 `hdiutil verify`、自签名与冻结冒烟测试） |
+| **Windows x64 独立安装包体积** | PyInstaller `onedir` + Inno Setup 6 / 便携归档（`windows-latest` CI 实测） | **38.0 MB**（`Setup.exe`）· **44.0 MB**（`Portable.zip`，冻结冒烟全通过） |
 
 ---
 

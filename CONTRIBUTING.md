@@ -49,7 +49,7 @@
 ### 环境要求
 - **Python**: `3.11+`（macOS 独立打包推荐使用 `Python 3.12`）
 - **Node.js**: `20+`（含 `npm`）
-- **操作系统**: macOS Apple Silicon / Intel（跨平台 Web 模式兼容 Windows / Linux）
+- **操作系统**: macOS Apple Silicon / Intel、Windows 10/11 (x64) 原生桌面端，以及 Linux 跨平台 Web 模式
 
 ### 安装与运行
 ```bash
@@ -61,7 +61,7 @@ cd paperdiff/frontend
 npm ci && npm run build
 cd ../..
 
-# 3. 启动本地桌面窗口（macOS WKWebView 原生模式）
+# 3. 启动本地桌面窗口（macOS WKWebView / Windows Edge WebView2 原生模式）
 python3 paperdiff/desktop_app.py
 
 # 或启动跨平台 Web 后台模式（默认 http://127.0.0.1:8765）

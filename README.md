@@ -217,10 +217,10 @@ PaperDiff follows a decoupled **4-layer Local-First Document Architecture** desi
 
 | Layer | Core Stack | Architectural Responsibility |
 | :--- | :--- | :--- |
-| **1. Dual-Channel Client** | `React 18` · `TypeScript` · `Tailwind CSS` · `KaTeX` · `Mermaid` · `pywebview` | Renders the unified SPA at 60 FPS (`content-visibility: auto`, 4,000-entry KaTeX LRU cache) across macOS native `WKWebView` and cross-platform Web PWA |
+| **1. Dual-Channel Client** | `React 18` · `TypeScript` · `Tailwind CSS` · `KaTeX` · `Mermaid` · `pywebview` | Renders the unified SPA at 60 FPS (`content-visibility: auto`, 4,000-entry KaTeX LRU cache) across native macOS `WKWebView`, Windows `Edge WebView2`, and cross-platform Web PWA |
 | **2. Local Runtime & Sandbox** | `FastAPI` · `Uvicorn` · `SQLite` | Binds exclusively to `127.0.0.1`, manages single-instance port locks & CLI path handoff, and isolates local folder reads inside a canonical `realpath` sandbox |
 | **3. Semantic AST, IR & Audit Core** | `pylatexenc` · `python-docx` · `lxml` · `markdown-it-py` · `jieba` | Parses `.tex/.zip`, `.docx`, and `.md` into a 3-zone lossless IR preserving exact character spans & XML anchors; runs bilingual DP diffing and 4-dimension local fact auditing |
-| **4. Round-Trip & Delivery Plane** | Surgical Span/XML Patchers · `WKWebView` / Chrome Headless PDF | Applies typed in-place edits directly onto original LaTeX spans, Overleaf `.zip` trees, or `.docx` XML templates (`_revised` + `.bak`), and renders offline self-contained PDF reports |
+| **4. Round-Trip & Delivery Plane** | Surgical Span/XML Patchers · `WKWebView` / Edge·Chrome Headless PDF | Applies typed in-place edits directly onto original LaTeX spans, Overleaf `.zip` trees, or `.docx` XML templates (`_revised` + `.bak`), and renders offline self-contained PDF reports |
 
 ---
 
@@ -236,7 +236,8 @@ Measured by the automated suite [`paperdiff/tests/test_performance_benchmark.py`
 | **Chrome Read-Mode Fast Scroll** | **441 blocks / 2,750 KaTeX formulas / 56,986 px height** | **P50 = 16.65 ms · P95 = 17.35 ms (locked 60.0 FPS)** |
 | **Chrome 16-Step Window Resize** | `1520px → 840px → 1480px` continuous responsive drag | **P50 = 80.26 ms · P95 = 101.49 ms** |
 | **Chrome Split-Diff Fast Scroll** | 441-block side-by-side comparison view | **P50 = 19.75 ms · P95 = 36.40 ms** |
-| **Standalone macOS `.dmg` Size** | Complete PyInstaller + React + offline KaTeX/Mermaid bundle | **46.7 MB** (`hdiutil verify` + ad-hoc `codesign` passed) |
+| **Standalone macOS `.dmg` Size** | Complete PyInstaller + React + offline KaTeX/Mermaid bundle | **47.1 MB** (`hdiutil verify` + ad-hoc `codesign` + smoke test passed) |
+| **Standalone Windows x64 Packages** | PyInstaller `onedir` + Inno Setup 6 / Portable archive (`windows-latest` CI) | **38.0 MB** (`Setup.exe`) · **44.0 MB** (`Portable.zip`, frozen smoke test passed) |
 
 ---
 
