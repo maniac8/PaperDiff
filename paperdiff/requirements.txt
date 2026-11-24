@@ -22,4 +22,4 @@ jieba>=0.42.1,<1.0.0
 pywebview>=5.1,<7.0
 pyobjc-core>=10.0; sys_platform == "darwin"
 pyobjc-framework-Cocoa>=10.0; sys_platform == "darwin"
-pyobjc-framework-WebKit>=10.0; sys_platform == "darwin"
+pyobjc-framework-WebKit>=13.0; sys_platform == "darwin"
