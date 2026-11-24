@@ -541,7 +541,7 @@ def render_diff_print_html(
     parts.append(
         f"""
 <div class="report-header">
-  <div class="brand-kicker">对稿 · PaperDiff v0.1.0 · {mode_tag}</div>
+  <div class="brand-kicker">对稿 · PaperDiff v0.2.0 · {mode_tag}</div>
   <h1 class="report-title">{html.escape(project_name)}</h1>
   <div class="report-sub">
     <span><strong>基准版：</strong>{html.escape(old_label)}</span>
@@ -876,7 +876,7 @@ def render_single_print_html(
     parts.append(
         f"""
 <div class="report-header">
-  <div class="brand-kicker">对稿 · PaperDiff v0.1.0 · 精排阅读版</div>
+  <div class="brand-kicker">对稿 · PaperDiff v0.2.0 · 精排阅读版</div>
   <h1 class="report-title">{html.escape(title)}</h1>
   <div class="report-sub">
     <span><strong>版本：</strong>{html.escape(version_label)}</span>

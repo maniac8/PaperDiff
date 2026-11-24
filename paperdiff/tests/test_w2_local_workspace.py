@@ -132,9 +132,14 @@ def test_w2_t02_path_sandbox_blocks_escapes_and_symlinks(tmp_path: Path) -> None
     outside_secret = tmp_path / "secret.txt"
     outside_secret.write_text("TOP_SECRET_DATA", encoding="utf-8")
 
-    # Symlink inside bound root pointing outside root
+    # Symlink inside bound root pointing outside root (skip symlink checks only if OS lacks privilege)
     evil_link = root / "evil_link.md"
-    os.symlink(outside_secret, evil_link)
+    has_symlink = False
+    try:
+        os.symlink(outside_secret, evil_link)
+        has_symlink = True
+    except OSError:
+        has_symlink = False
 
     # 1. Valid in-root path passes
     ok = resolve_safe_path(root, "main.tex", must_exist=True)
@@ -150,16 +155,17 @@ def test_w2_t02_path_sandbox_blocks_escapes_and_symlinks(tmp_path: Path) -> None
         resolve_safe_path(root, str(outside_secret))
     assert exc2.value.status_code == 403 and exc2.value.code == "PATH_OUTSIDE_ROOT"
 
-    # 4. Symlink escaping root rejected
-    with pytest.raises(LocalWorkspaceError) as exc3:
-        resolve_safe_path(root, "evil_link.md", must_exist=True)
-    assert exc3.value.status_code == 403 and exc3.value.code == "PATH_OUTSIDE_ROOT"
+    if has_symlink:
+        # 4. Symlink escaping root rejected
+        with pytest.raises(LocalWorkspaceError) as exc3:
+            resolve_safe_path(root, "evil_link.md", must_exist=True)
+        assert exc3.value.status_code == 403 and exc3.value.code == "PATH_OUTSIDE_ROOT"
 
-    # 5. Directory scan silently skips outside symlink (never leaks it into tree)
-    tree = scan_local_tree(root, include_aux=True)
-    flat_names = [n["name"] for n in tree["nodes"]]
-    assert "main.tex" in flat_names
-    assert "evil_link.md" not in flat_names
+        # 5. Directory scan silently skips outside symlink (never leaks it into tree)
+        tree = scan_local_tree(root, include_aux=True)
+        flat_names = [n["name"] for n in tree["nodes"]]
+        assert "main.tex" in flat_names
+        assert "evil_link.md" not in flat_names
 
 
 def test_w2_t03_bounded_tree_scan_noise_filter_aux_and_truncation(tmp_path: Path) -> None:
@@ -192,7 +198,10 @@ def test_w2_t03_bounded_tree_scan_noise_filter_aux_and_truncation(tmp_path: Path
     sub.mkdir()
     (sub / "method.tex").write_text("method", encoding="utf-8")
     # Self-referential symlink loop inside root must not cause infinite recursion
-    os.symlink(root, sub / "loop_back")
+    try:
+        os.symlink(root, sub / "loop_back")
+    except OSError:
+        pass
 
     def _collect_rel_paths(nodes: list[dict]) -> list[str]:
         out: list[str] = []
@@ -846,8 +855,8 @@ def test_w2_t10_fault_isolation_missing_unreadable_corrupted_and_bad_encoding(tm
             assert r_bad_enc.status_code == 200
             assert r_bad_enc.json().get("encoding_warning")
 
-            # 4. Unreadable file permission returns 403 FILE_UNREADABLE (skipped only if running as root)
-            if os.geteuid() != 0:
+            # 4. Unreadable file permission returns 403 FILE_UNREADABLE (POSIX non-root only)
+            if os.name == "posix" and getattr(os, "geteuid", lambda: 1)() != 0:
                 os.chmod(no_perm, 0o000)
                 r_noperm = client.post(f"/api/projects/{pid_fault}/local/preview", json={"rel_path": "secret_noperm.md"})
                 assert r_noperm.status_code == 403 and r_noperm.json()["code"] == "FILE_UNREADABLE"

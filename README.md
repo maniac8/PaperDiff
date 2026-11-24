@@ -10,12 +10,12 @@
 
 **100% Local-First Academic Manuscript Reader, Structural Diff & Lossless Revision Workbench**
 
-[![Version](https://img.shields.io/badge/version-v0.1.0-38BDF8?style=flat-square&labelColor=0F172A)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v0.2.0-38BDF8?style=flat-square&labelColor=0F172A)](./CHANGELOG.md)
 [![GitHub Stars](https://img.shields.io/github/stars/maniac8/PaperDiff?style=flat-square&color=FACC15&labelColor=0F172A)](https://github.com/maniac8/PaperDiff/stargazers)
 [![Python >= 3.11](https://img.shields.io/badge/python-%3E%3D3.11-3776AB?style=flat-square&logo=python&logoColor=white&labelColor=0F172A)](#quick-start)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat-square&logo=fastapi&logoColor=white&labelColor=0F172A)](#system-architecture)
 [![React 18 + TypeScript](https://img.shields.io/badge/React%2018-TypeScript-38BDF8?style=flat-square&logo=react&logoColor=white&labelColor=0F172A)](#system-architecture)
-[![Platforms](https://img.shields.io/badge/platform-macOS%20DMG%20%7C%20Windows%20%7C%20Linux-64748B?style=flat-square&labelColor=0F172A)](#quick-start)
+[![Platforms](https://img.shields.io/badge/platform-macOS%20DMG%20%7C%20Windows%20EXE%2FZIP%20%7C%20Linux-64748B?style=flat-square&labelColor=0F172A)](#quick-start)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22C55E?style=flat-square&labelColor=0F172A)](./LICENSE)
 [![Privacy](https://img.shields.io/badge/privacy-100%25%20Local%20Offline-22C55E?style=flat-square&labelColor=0F172A)](#privacy-safety--non-goals)
 
@@ -29,9 +29,9 @@
 
 It runs strictly on `127.0.0.1` with **zero cloud uploads**, **zero external LLM APIs**, and **zero GPL/AGPL dependencies**—KaTeX math rendering, Mermaid diagrams, syntax highlighting, Word original layout preview, and print-grade PDF export all work 100% offline.
 
-| Privacy & Network | 441-Block / 2,750-Formula Scroll | Standalone macOS App | Automated Verification |
+| Privacy & Network | 441-Block / 2,750-Formula Scroll | Standalone Desktop Apps | Automated Verification |
 | :---: | :---: | :---: | :---: |
-| **100% Local Offline**<br><sub>`127.0.0.1` only · 0 telemetry</sub> | **60.0 FPS**<br><sub>`P50 = 16.65 ms` · `P95 = 17.35 ms`</sub> | **46.7 MB DMG**<br><sub>Apple Silicon · 0 runtime deps</sub> | **59 pytest + 14 unit**<br><sub>Incl. real Chrome CDP E2E</sub> |
+| **100% Local Offline**<br><sub>`127.0.0.1` only · 0 telemetry</sub> | **60.0 FPS**<br><sub>`P50 = 16.65 ms` · `P95 = 17.35 ms`</sub> | **macOS `.dmg` & Win `.exe`/`.zip`**<br><sub>Zero Python/Node runtime deps</sub> | **76 pytest + 14 unit**<br><sub>Incl. Chrome CDP & Win compat</sub> |
 
 ## Screenshots
 
@@ -76,7 +76,7 @@ Choose the installation path for your operating system:
 
 No Python or Node.js installation needed:
 
-1. Download **`PaperDiff-v0.1.0-macOS-arm64.dmg`** from [GitHub Releases](https://github.com/maniac8/PaperDiff/releases).
+1. Download **`PaperDiff-v0.2.0-macOS-arm64.dmg`** from [GitHub Releases](https://github.com/maniac8/PaperDiff/releases).
 2. Open the `.dmg` and drag **`PaperDiff.app`** into **Applications**.
 3. Launch **PaperDiff** from Applications (or Spotlight).
 
@@ -87,7 +87,22 @@ No Python or Node.js installation needed:
 > ```
 > **Optional CLI shortcut:** Inside the desktop app, click **CLI (`命令行`)** in the top bar to install `~/.local/bin/paperdiff`. Afterward, run `paperdiff .` in any manuscript folder to jump straight into it, or click **Open in Browser** to share the exact same local session in Safari/Chrome.
 
-### Windows (Cross-Platform Silent Web Mode)
+### Windows (x64 — Standalone `Setup.exe` & `Portable.zip`, Recommended)
+
+No Python or Node.js installation needed (uses the built-in Windows 10/11 Edge WebView2 runtime):
+
+- **Standard Installer (Recommended for personal PCs):** Download **`PaperDiff-v0.2.0-Windows-x64-Setup.exe`** from [GitHub Releases](https://github.com/maniac8/PaperDiff/releases) and run the wizard. Installs per-user by default without requiring admin privileges (`%LOCALAPPDATA%\Programs\PaperDiff`), optionally adds `paperdiff` to `PATH`, and registers clean Windows uninstall.
+- **Portable Archive (Lab PCs / USB / No-Install):** Download **`PaperDiff-v0.2.0-Windows-x64-Portable.zip`**, unzip anywhere, and double-click `PaperDiff.exe`. Ships with `portable.flag` so your database and logs stay inside the adjacent `data\` folder (falling back to `%LOCALAPPDATA%\PaperDiff` if read-only).
+
+> [!TIP]
+> **First-launch SmartScreen prompt (unsigned open-source build):** Because PaperDiff is free open-source software without a commercial Authenticode certificate, Windows Defender SmartScreen may show *"Windows protected your PC"* on first run. Click **More info** → **Run anyway**, and optionally verify integrity against `SHA256SUMS.txt`:
+> ```powershell
+> Get-FileHash .\PaperDiff-v0.2.0-Windows-x64-Setup.exe -Algorithm SHA256
+> ```
+> **PDF Export & WebView2:** PDF export automatically uses your installed Microsoft Edge or Google Chrome silently (zero console flash). On stripped-down early Windows 10 systems without Edge WebView2, install the official [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/).
+
+<details>
+<summary>Windows from Source / Cross-Platform Silent Web Mode (`启动PaperDiff.bat`)</summary>
 
 **Prerequisites:**
 - **Python 3.11+** — download from [python.org](https://www.python.org/downloads/windows/) *(check **"Add python.exe to PATH"** during setup)*
@@ -121,8 +136,9 @@ python paperdiff\launch_desktop.py --status
 python paperdiff\launch_desktop.py --stop
 ```
 
-> [!TIP]
 > **Make it feel like a native Windows app (PWA):** When PaperDiff opens in **Microsoft Edge** or **Google Chrome**, click the **Install App** icon at the right edge of the address bar to pin PaperDiff to your Windows Taskbar as a standalone borderless window.
+
+</details>
 
 <details>
 <summary>More installation options (macOS from source, Linux Web mode, and 4 built-in showcase examples)</summary>
@@ -229,7 +245,7 @@ Measured by the automated suite [`paperdiff/tests/test_performance_benchmark.py`
 | Task | macOS / Linux | Windows (PowerShell) |
 | :--- | :--- | :--- |
 | **Start silently in background** | `python3 paperdiff/launch_desktop.py --daemon` | `python paperdiff\launch_desktop.py --daemon` |
-| **Open a specific folder / file** | `paperdiff .` *(or `launch_desktop.py /path --daemon`)* | `python paperdiff\launch_desktop.py D:\Papers\Draft --daemon` |
+| **Open a specific folder / file** | `paperdiff .` *(or `launch_desktop.py /path --daemon`)* | `paperdiff .` *(installed CLI)* or `python paperdiff\launch_desktop.py D:\Papers\Draft --daemon` |
 | **Check running port & log path** | `python3 paperdiff/launch_desktop.py --status` | `python paperdiff\launch_desktop.py --status` |
 | **Stop local server gracefully** | `python3 paperdiff/launch_desktop.py --stop` | `python paperdiff\launch_desktop.py --stop` |
 | **Custom port** | `python3 paperdiff/launch_desktop.py --port 8765 --daemon` | `python paperdiff\launch_desktop.py --port 8765 --daemon` |
@@ -240,10 +256,11 @@ Measured by the automated suite [`paperdiff/tests/test_performance_benchmark.py`
 
 | Environment Variable | Default | Purpose |
 | :--- | :--- | :--- |
-| `PAPERDIFF_DATA_DIR` | `~/Library/Application Support/PaperDiff` *(packaged macOS)* or `paperdiff/data/` *(source mode)* | Directory holding SQLite DB, deduplicated assets, `server.lock`, `window_state.json`, and rotating `logs/server.log` |
+| `PAPERDIFF_DATA_DIR` | macOS app: `~/Library/Application Support/PaperDiff` · Windows installer: `%LOCALAPPDATA%\PaperDiff` · Windows Portable (`portable.flag`): `./data/` · Source mode: `paperdiff/data/` | Directory holding SQLite DB, deduplicated assets, `server.lock`, `window_state.json`, and rotating `logs/server.log` |
 | `PAPERDIFF_PORT` | Auto-selected (`8765` preferred) | Preferred loopback port on `127.0.0.1` |
+| `PAPERDIFF_CHROME_PATH` | Auto-detected (Edge / Chrome / Chromium) | Optional explicit browser executable path for headless PDF export |
 
-To uninstall cleanly: delete `PaperDiff.app` (or the cloned repo) and optionally remove your `PAPERDIFF_DATA_DIR`. Your bound local manuscript folders on disk are **never deleted** when removing a project or uninstalling PaperDiff.
+To uninstall cleanly: remove `PaperDiff.app` (macOS), use Windows **Installed Apps** uninstall (or delete the extracted Portable folder), and optionally remove your `PAPERDIFF_DATA_DIR`. Your bound local manuscript folders on disk are **never deleted** when removing a project or uninstalling PaperDiff.
 
 </details>
 
@@ -270,7 +287,7 @@ No. All parsing, diffing, four-dimension fact auditing, KaTeX/Mermaid rendering,
 No. PaperDiff archives your original `.docx` binary and applies targeted in-place XML patches directly to the original template (`backend/patcher/docx_patcher.py`), preserving covers, fonts, headers/footers, and form borders—and supports exporting either a clean version or native Word Track Changes (`<w:ins>/<w:del>`).
 
 ### Is there a Windows `.exe` installer? How should Windows users run PaperDiff?
-In `v0.1.0`, Windows runs via the **Cross-Platform Silent Web Mode** (`启动PaperDiff.bat` / `停止PaperDiff.bat`), which launches silently with `pythonw` (no black console window) and supports installing as a standalone Edge/Chrome PWA window.
+Yes! Starting in `v0.2.0`, GitHub Releases publishes both **`PaperDiff-v0.2.0-Windows-x64-Setup.exe`** (standard per-user Inno Setup installer, no Python/Node needed) and **`PaperDiff-v0.2.0-Windows-x64-Portable.zip`** (unzip-and-run portable bundle). Developers who prefer browser mode can still use `启动PaperDiff.bat` / `停止PaperDiff.bat`.
 
 ### Can I use PaperDiff alongside VS Code, LaTeX Workshop, or Overleaf?
 Yes. Bind your local LaTeX folder (or unpacked Overleaf repo) in PaperDiff. Keep editing in VS Code or dropping updated Overleaf `.zip` archives into the folder—PaperDiff detects disk changes on window focus and lets you diff any two versions immediately.
@@ -283,8 +300,8 @@ The open-source `.dmg` is ad-hoc signed without a paid Apple Developer ID notari
 ## Development & Testing
 
 ```bash
-# 1. Backend & real Headless Chrome CDP E2E suite (59 tests)
-cd paperdiff && python3 -m pytest -W ignore -v
+# 1. Backend & real Headless Chrome CDP E2E suite (76 tests)
+cd paperdiff && python3 -m pytest -W ignore -v --ignore=tests/test_performance_benchmark.py
 
 # 2. Frontend pure-function unit tests (14 tests) & strict TypeScript build
 cd paperdiff/frontend
@@ -293,13 +310,16 @@ npm run build
 
 # 3. Build standalone macOS ARM64 .app & verified .dmg (~47 MB)
 /opt/homebrew/bin/python3.12 -u paperdiff/packaging/build_macos_dmg.py
+
+# 4. Build standalone Windows x64 Setup.exe & Portable.zip (on Windows with Inno Setup 6)
+python -u paperdiff/packaging/build_windows_release.py
 ```
 
 ### Project Layout
 
 ```text
 .
-├── .github/                      # CI, automated Release DMG pipeline, PR/Issue templates & Dependabot
+├── .github/                      # CI, atomic macOS + Windows Release pipeline, PR/Issue templates & Dependabot
 ├── assets/                       # Light/Dark vector architecture SVGs & real UI screenshots
 ├── branding/release/             # Split Sheet vector brand assets & dual-theme banners
 ├── examples/                     # 4 official synthetic manuscripts (Markdown / Word / LaTeX / Overleaf ZIP)
@@ -313,12 +333,12 @@ npm run build
 ├── 启动PaperDiff.command / .bat  # One-click silent launch scripts (macOS / Windows)
 ├── 停止PaperDiff.command / .bat  # One-click graceful stop scripts (macOS / Windows)
 └── paperdiff/
-    ├── desktop_app.py            # macOS native desktop shell (pywebview / WKWebView)
+    ├── desktop_app.py            # Cross-platform native desktop shell (macOS WKWebView / Windows Edge WebView2)
     ├── launch_desktop.py         # Cross-platform Web daemon launcher & CLI path handoff
     ├── backend/                  # FastAPI server, AST parsers, diff, audit, patcher & PDF export
     ├── frontend/                 # React 18 + TypeScript + Tailwind SPA & PWA assets
-    ├── packaging/                # PyInstaller spec & macOS .dmg build script
-    └── tests/                    # 59 automated backend, parser, round-trip & Chrome CDP tests
+    ├── packaging/                # macOS .dmg & Windows Inno Setup/Portable packaging specs & builders
+    └── tests/                    # 76 automated backend, parser, round-trip, Windows compat & CDP tests
 ```
 
 ## Contributing & License

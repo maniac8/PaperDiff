@@ -44,7 +44,7 @@ const GUIDE_SECTIONS = [
   { id: 'guide-faq', title: '6. 常见问题' },
 ];
 
-const GUIDE_MARKDOWN = `# 对稿 · PaperDiff 使用指南（v0.1.0）
+const GUIDE_MARKDOWN = `# 对稿 · PaperDiff 使用指南（v0.2.0）
 
 一款完全在本地运行的论文阅读与版本比对工具。支持 LaTeX（.tex / .zip）、Word（.docx）与 Markdown（.md / .txt），不联网、不上传文件。
 
@@ -55,10 +55,11 @@ const GUIDE_MARKDOWN = `# 对稿 · PaperDiff 使用指南（v0.1.0）
 3. **两两对比**：在左侧文件树勾选任意两份文件，点「对比」即可左右对照查看改动，自动标出数值、引文、公式、术语和表格变化。
 4. **保存与导出**：修改默认「另存为新文件」，覆盖原稿前会自动生成 .paperdiff.bak 备份；也支持直接导出 Word、LaTeX、Overleaf .zip 或离线 PDF 报告。
 
-## 2. 两种启动方式
+## 2. 多种启动方式
 
-- **macOS 桌面版**：安装 PaperDiff.app，双击即开；顶栏支持一键「浏览器打开」与安装 \`paperdiff\` 命令行（在终端运行 \`paperdiff .\` 直达当前目录）。
-- **跨平台 Web 版（Windows / macOS）**：双击「启动PaperDiff.command / 启动PaperDiff.bat」在后台静默启动，不留黑框终端；点击网页顶栏状态栏即可随时停止服务。
+- **macOS 桌面版（推荐）**：安装 PaperDiff.app，双击即开；顶栏支持一键「浏览器打开」与安装 \`paperdiff\` 命令行（在终端运行 \`paperdiff .\` 直达当前目录）。
+- **Windows 桌面版（推荐）**：下载 \`Setup.exe\` 一键安装（默认免管理员权限，可选将 \`paperdiff\` 加入 PATH），或下载 \`Portable.zip\` 解压到任意目录/U 盘即用（同级 \`portable.flag\` 自动将数据保存在 \`data/\` 目录）。
+- **跨平台 Web 版（源码 / 浏览器模式）**：双击「启动PaperDiff.command / 启动PaperDiff.bat」在后台静默启动，不留黑框终端；点击网页顶栏状态栏即可随时停止服务。
 
 ## 3. 常用快捷键
 
@@ -130,7 +131,7 @@ export const ProductGuideView: React.FC<ProductGuideViewProps> = ({
             <BrandMark size={18} />
             使用指南
             <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-slate-600">
-              v0.1.0
+              v0.2.0
             </span>
           </span>
         </div>
@@ -142,7 +143,7 @@ export const ProductGuideView: React.FC<ProductGuideViewProps> = ({
             onClick={() =>
               triggerFileDownload(
                 GUIDE_MARKDOWN,
-                'PaperDiff_v0.1.0_使用指南.md',
+                'PaperDiff_v0.2.0_使用指南.md',
                 'text/markdown;charset=utf-8',
               )
             }

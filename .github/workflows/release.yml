@@ -5,6 +5,12 @@ on:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
       - 'v[0-9]+.[0-9]+.[0-9]+-*'
+  workflow_dispatch:
+    inputs:
+      ref_note:
+        description: 'Optional note for pre-release dual-platform artifact test build'
+        required: false
+        default: 'manual-test-build'
 
 permissions:
   contents: write
@@ -14,35 +20,56 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build-and-publish:
-    name: Verify, Build macOS DMG & Publish Release
-    runs-on: macos-latest
-    timeout-minutes: 30
-    env:
-      GH_TOKEN: ${{ github.token }}
-      TAG_NAME: ${{ github.ref_name }}
+  verify:
+    name: Verify Tag, Version Parity & Changelog
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      has_notes: ${{ steps.notes.outputs.has_notes }}
+      is_prerelease: ${{ steps.notes.outputs.is_prerelease }}
+      tag_name: ${{ steps.meta.outputs.tag_name }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Verify tag is on main and version numbers match
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Resolve build metadata
+        id: meta
         shell: bash
         run: |
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            echo "tag_name=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag_name=manual" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify tag ancestry and version parity across macOS & Windows
+        shell: bash
+        env:
+          TAG_NAME: ${{ steps.meta.outputs.tag_name }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
           set -euo pipefail
-          git fetch --no-tags origin main:refs/remotes/origin/main
-          if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
-            echo "::error::Tag ${TAG_NAME} is not an ancestor of origin/main. Merge dev -> main first, then tag on main."
-            exit 1
+          if [ "${EVENT_NAME}" = "push" ]; then
+            git fetch --no-tags origin main:refs/remotes/origin/main
+            if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
+              echo "::error::Tag ${TAG_NAME} is not an ancestor of origin/main. Merge dev -> main first, then tag on main."
+              exit 1
+            fi
           fi
 
           python3 - << 'EOF'
           import json, os, re
           from pathlib import Path
 
+          event_name = os.environ["EVENT_NAME"]
           tag = os.environ["TAG_NAME"]
-          expected = tag.lstrip("v").split("-", 1)[0]
 
           rt = Path("paperdiff/backend/runtime_state.py").read_text(encoding="utf-8")
           m_rt = re.search(r'APP_VERSION\s*=\s*"([^"]+)"', rt)
@@ -51,18 +78,87 @@ jobs:
           m_dmg = re.search(r'VERSION\s*=\s*"([^"]+)"', dmg)
           spec = Path("paperdiff/packaging/PaperDiff.spec").read_text(encoding="utf-8")
           m_spec = re.search(r'"CFBundleShortVersionString":\s*"([^"]+)"', spec)
+          win_bld = Path("paperdiff/packaging/build_windows_release.py").read_text(encoding="utf-8")
+          m_win = re.search(r'VERSION\s*=\s*"([^"]+)"', win_bld)
+          iss = Path("paperdiff/packaging/PaperDiff.iss").read_text(encoding="utf-8")
+          m_iss = re.search(r'#define\s+AppVersion\s+"([^"]+)"', iss)
 
           vals = {
               "runtime_state.APP_VERSION": m_rt.group(1) if m_rt else None,
               "frontend/package.json": pkg,
               "build_macos_dmg.py": m_dmg.group(1) if m_dmg else None,
               "PaperDiff.spec": m_spec.group(1) if m_spec else None,
+              "build_windows_release.py": m_win.group(1) if m_win else None,
+              "PaperDiff.iss": m_iss.group(1) if m_iss else None,
           }
+
+          expected = tag.lstrip("v").split("-", 1)[0] if event_name == "push" else vals["runtime_state.APP_VERSION"]
           mismatches = {k: v for k, v in vals.items() if v != expected}
-          if mismatches:
-              raise SystemExit(f"Version mismatch for tag {tag} (expected {expected}): {vals}")
-          print(f"Version parity verified: {tag} === {vals}")
+          if not expected or mismatches:
+              raise SystemExit(f"Version mismatch (expected {expected}): {vals}")
+          print(f"Dual-platform version parity verified ({expected}): {vals}")
           EOF
+
+      - name: Extract release notes from CHANGELOG.md
+        id: notes
+        shell: bash
+        env:
+          TAG_NAME: ${{ steps.meta.outputs.tag_name }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [ "${EVENT_NAME}" != "push" ]; then
+            echo "has_notes=false" >> "$GITHUB_OUTPUT"
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          python3 - << 'EOF'
+          import os, re
+          from pathlib import Path
+
+          tag = os.environ["TAG_NAME"]
+          ver = tag.lstrip("v")
+          is_pre = "-" in ver
+          changelog = Path("CHANGELOG.md").read_text(encoding="utf-8").replace("\r\n", "\n")
+          m = re.search(rf"^## \[{re.escape(ver)}\][^\n]*$", changelog, re.M)
+          gh_out = Path(os.environ["GITHUB_OUTPUT"])
+
+          if not m:
+              if is_pre:
+                  gh_out.write_text("has_notes=false\nis_prerelease=true\n", encoding="utf-8")
+                  raise SystemExit(0)
+              raise SystemExit(f'Missing "## [{ver}]" section in CHANGELOG.md for stable release {tag}.')
+
+          rest = changelog[m.end():]
+          nxt = re.search(r"\n## \[", rest)
+          body = (rest if not nxt else rest[:nxt.start()]).strip()
+          body = re.sub(r"(?:\n+---+\s*)+$", "", body).strip()
+          if not body:
+              raise SystemExit(f'CHANGELOG.md section "## [{ver}]" is empty.')
+
+          Path("release-notes.md").write_text(body + "\n", encoding="utf-8")
+          with gh_out.open("a", encoding="utf-8") as f:
+              f.write(f"has_notes=true\nis_prerelease={'true' if is_pre else 'false'}\n")
+          print(f"Extracted {len(body)} chars of release notes for {tag}.")
+          EOF
+
+      - name: Upload extracted release notes
+        if: steps.notes.outputs.has_notes == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release-notes.md
+          retention-days: 7
+
+  build-macos:
+    name: Build & Verify macOS ARM64 DMG
+    needs: verify
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
 
       - name: Setup Python 3.12
         uses: actions/setup-python@v7
@@ -94,42 +190,108 @@ jobs:
       - name: Build and verify standalone macOS ARM64 DMG
         run: paperdiff/.venv_pkg/bin/python -u paperdiff/packaging/build_macos_dmg.py
 
-      - name: Extract release notes from CHANGELOG.md
-        id: notes
+      - name: Upload macOS release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-macos
+          path: release/PaperDiff-*.dmg
+          if-no-files-found: error
+          retention-days: 14
+
+  build-windows:
+    name: Build & Verify Windows x64 Setup + Portable
+    needs: verify
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: paperdiff/frontend/package-lock.json
+
+      - name: Install frontend dependencies and run unit tests
+        working-directory: paperdiff/frontend
+        shell: pwsh
+        run: |
+          npm ci
+          node --experimental-strip-types --test src/utils/*.test.mjs
+          npm run build
+
+      - name: Create isolated packaging venv and run pytest
+        shell: pwsh
+        run: |
+          python -m venv paperdiff/.venv_pkg
+          paperdiff\.venv_pkg\Scripts\python.exe -m pip install --upgrade pip
+          paperdiff\.venv_pkg\Scripts\python.exe -m pip install -r paperdiff/requirements-dev.txt
+          Push-Location paperdiff
+          .\.venv_pkg\Scripts\python.exe -m pytest -W ignore -v --ignore=tests/test_performance_benchmark.py
+          Pop-Location
+
+      - name: Build and verify Windows Setup.exe and Portable.zip
+        shell: pwsh
+        run: |
+          paperdiff\.venv_pkg\Scripts\python.exe -u paperdiff/packaging/build_windows_release.py
+
+      - name: Upload Windows release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          path: |
+            release/PaperDiff-*-Windows-*.exe
+            release/PaperDiff-*-Windows-*.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish Atomic Dual-Platform GitHub Release
+    needs: [verify, build-macos, build-windows]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG_NAME: ${{ needs.verify.outputs.tag_name }}
+    steps:
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-macos
+          path: dist_release
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-windows
+          path: dist_release
+
+      - name: Download release notes
+        if: needs.verify.outputs.has_notes == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: release-notes
+          path: dist_notes
+
+      - name: Generate unified SHA256SUMS.txt
         shell: bash
         run: |
           set -euo pipefail
-          python3 - << 'EOF'
-          import os, re
-          from pathlib import Path
+          cd dist_release
+          sha256sum PaperDiff-* > SHA256SUMS.txt
+          cat SHA256SUMS.txt
 
-          tag = os.environ["TAG_NAME"]
-          ver = tag.lstrip("v")
-          is_pre = "-" in ver
-          changelog = Path("CHANGELOG.md").read_text(encoding="utf-8").replace("\r\n", "\n")
-          m = re.search(rf"^## \[{re.escape(ver)}\][^\n]*$", changelog, re.M)
-          gh_out = Path(os.environ["GITHUB_OUTPUT"])
-
-          if not m:
-              if is_pre:
-                  gh_out.write_text("has_notes=false\nis_prerelease=true\n", encoding="utf-8")
-                  raise SystemExit(0)
-              raise SystemExit(f'Missing "## [{ver}]" section in CHANGELOG.md for stable release {tag}.')
-
-          rest = changelog[m.end():]
-          nxt = re.search(r"\n## \[", rest)
-          body = (rest if not nxt else rest[:nxt.start()]).strip()
-          body = re.sub(r"(?:\n+---+\s*)+$", "", body).strip()
-          if not body:
-              raise SystemExit(f'CHANGELOG.md section "## [{ver}]" is empty.')
-
-          Path("/tmp/release-notes.md").write_text(body + "\n", encoding="utf-8")
-          with gh_out.open("a", encoding="utf-8") as f:
-              f.write(f"has_notes=true\nis_prerelease={'true' if is_pre else 'false'}\n")
-          print(f"Extracted {len(body)} chars of release notes for {tag}.")
-          EOF
-
-      - name: Publish GitHub Release with macOS DMG & SHA256SUMS
+      - name: Publish GitHub Release with macOS DMG, Windows Setup/Portable & SHA256SUMS
         shell: bash
         run: |
           set -euo pipefail
@@ -138,15 +300,22 @@ jobs:
             exit 0
           fi
 
-          ARGS=(release create "${TAG_NAME}" release/PaperDiff-*.dmg release/SHA256SUMS.txt --repo "${GITHUB_REPOSITORY}" --verify-tag --title "PaperDiff ${TAG_NAME}")
-          if [ "${{ steps.notes.outputs.is_prerelease }}" = "true" ]; then
+          ARGS=(
+            release create "${TAG_NAME}"
+            dist_release/PaperDiff-*
+            dist_release/SHA256SUMS.txt
+            --repo "${GITHUB_REPOSITORY}"
+            --verify-tag
+            --title "PaperDiff ${TAG_NAME}"
+          )
+          if [ "${{ needs.verify.outputs.is_prerelease }}" = "true" ]; then
             ARGS+=(--prerelease)
           else
             ARGS+=(--latest)
           fi
 
-          if [ "${{ steps.notes.outputs.has_notes }}" = "true" ]; then
-            ARGS+=(--notes-file /tmp/release-notes.md)
+          if [ "${{ needs.verify.outputs.has_notes }}" = "true" ]; then
+            ARGS+=(--notes-file dist_notes/release-notes.md)
           else
             ARGS+=(--generate-notes)
           fi

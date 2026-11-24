@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [0.2.0] - 2026-11-25
+
+Standalone **Windows x64 Desktop Release (`Setup.exe` + `Portable.zip`)** alongside macOS ARM64 `.dmg`, powered by an atomic multi-platform GitHub Actions release pipeline.
+
+### Added
+
+- **Standalone Windows x64 Desktop Packaging (`Setup.exe` + `Portable.zip`)**:
+  - PyInstaller `onedir` Windows spec (`paperdiff/packaging/PaperDiff-win.spec`, `upx=False`) + multi-size `.ico` icon generator + end-to-end builder (`paperdiff/packaging/build_windows_release.py`) with SHA-256 frontend freshness gate and frozen `PAPERDIFF_SMOKE_TEST=1` verification.
+  - Inno Setup 6 installer (`paperdiff/packaging/PaperDiff.iss`): per-user no-UAC default install (`%LOCALAPPDATA%\Programs\PaperDiff`, with dialog override for all-users), desktop & Start Menu shortcuts, optional `paperdiff.cmd` PATH registration, clean uninstall, and zero `.docx`/`.tex`/`.md` association hijacking.
+  - Zero-install `Portable.zip` archive shipping with `portable.flag` so data stays portable in sibling `./data/` (with safe read-only fallback to `%LOCALAPPDATA%\PaperDiff`).
+- **Cross-Platform Desktop Runtime & Windows Compatibility**:
+  - Unified frozen `DATA_DIR` resolution across `backend/runtime_state.py` and `backend/database.py` (`PAPERDIFF_DATA_DIR` > portable `./data/` > `%LOCALAPPDATA%\PaperDiff` on Windows / `~/Library/Application Support/PaperDiff` on macOS).
+  - Windows-native Explorer folder opening (`os.startfile`), silent no-console headless Edge/Chrome PDF export (`CREATE_NO_WINDOW` + `PAPERDIFF_CHROME_PATH` override), graceful Chinese WebView2 Runtime guidance dialog, Windows `paperdiff.cmd` CLI wrapper support, quoted path & zero-inode filesystem compatibility for local folders.
+- **Atomic Dual-Platform CI/CD Release Pipeline (`.github/workflows/release.yml`)**:
+  - Upgraded to `verify → [build-macos, build-windows] → publish` with cross-platform version parity checks, `workflow_dispatch` test builds, and unified `SHA256SUMS.txt` generation only after both platforms pass full tests and smoke checks.
+
+---
+
 ## [0.1.0] - 2026-11-24
 
 Initial public open-source release of **对稿 · PaperDiff** — a 100% local-first academic manuscript reader, structural diff & fact-conservation auditor, and lossless round-trip revision workbench.

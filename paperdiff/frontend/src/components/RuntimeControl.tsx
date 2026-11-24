@@ -112,7 +112,11 @@ export const RuntimeControl: React.FC<RuntimeControlProps> = ({
                     data-desktop-cli-path-hint="true"
                     className="pd-resume-warn mt-2 rounded-lg border px-2.5 py-1.5 text-[11px] leading-relaxed"
                   >
-                    当前目录未在 <code>$PATH</code> 中，可将下面命令加入 <code>~/.zshrc</code>：
+                    {cliStatus.path_hint.includes('setx') ? (
+                      <>当前目录未在 <code>PATH</code> 中，可在终端执行下面命令添加（重开终端生效）：</>
+                    ) : (
+                      <>当前目录未在 <code>$PATH</code> 中，可将下面命令加入 <code>~/.zshrc</code>：</>
+                    )}
                     <div className="mt-1 font-mono text-[10.5px] break-all">{cliStatus.path_hint}</div>
                   </div>
                 )}

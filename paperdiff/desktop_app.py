@@ -375,14 +375,14 @@ class DesktopBridge:
         }
 
     def save_file_base64(self, filename: string_or_str, base64_data: str) -> dict[str, object]:
-        import webview
-
         raw = base64.b64decode(base64_data)
         safe_name = Path(filename or "export.txt").name
         default_dir = str(Path.home() / "Downloads")
 
         target_path: str | None = None
         if self.window is not None:
+            import webview
+
             dialog_type = getattr(webview, "FileDialog", None)
             save_mode = dialog_type.SAVE if dialog_type is not None else webview.SAVE_DIALOG
             result = self.window.create_file_dialog(
@@ -411,9 +411,7 @@ class DesktopBridge:
         html_content: str,
         landscape: bool = False,
     ) -> dict[str, object]:
-        """Export self-contained printable HTML to multi-page A4 PDF via native macOS WKWebView/NSPrintOperation (with Chrome fallback)."""
-        import webview
-
+        """Export self-contained printable HTML to multi-page A4 PDF (macOS WKWebView or headless Edge/Chrome)."""
         safe_name = Path(filename or "paperdiff_report.pdf").name
         if not safe_name.lower().endswith(".pdf"):
             safe_name += ".pdf"
@@ -421,6 +419,8 @@ class DesktopBridge:
 
         target_path: str | None = None
         if self.window is not None:
+            import webview
+
             dialog_type = getattr(webview, "FileDialog", None)
             save_mode = dialog_type.SAVE if dialog_type is not None else webview.SAVE_DIALOG
             result = self.window.create_file_dialog(
@@ -440,63 +440,64 @@ class DesktopBridge:
         dest = Path(target_path)
         dest.parent.mkdir(parents=True, exist_ok=True)
 
-        # Primary: native macOS WKWebView + NSPrintOperation (zero external browser dependency!)
-        try:
-            import AppKit
-            import Foundation
-            import WebKit
-            from PyObjCTools import AppHelper
+        # Primary on macOS: native WKWebView + NSPrintOperation (zero external browser dependency!)
+        if sys.platform == "darwin":
+            try:
+                import AppKit
+                import Foundation
+                import WebKit
+                from PyObjCTools import AppHelper
 
-            done_evt = threading.Event()
-            err_box: list[str] = []
+                done_evt = threading.Event()
+                err_box: list[str] = []
 
-            def _run_native_print() -> None:
-                try:
-                    w_pt, h_pt = (841.89, 595.28) if landscape else (595.28, 841.89)
-                    frame = Foundation.NSMakeRect(0, 0, w_pt, h_pt)
-                    cfg = WebKit.WKWebViewConfiguration.alloc().init()
-                    wv = WebKit.WKWebView.alloc().initWithFrame_configuration_(frame, cfg)
-                    self._print_wv = wv
-                    wv.loadHTMLString_baseURL_(html_content, None)
+                def _run_native_print() -> None:
+                    try:
+                        w_pt, h_pt = (841.89, 595.28) if landscape else (595.28, 841.89)
+                        frame = Foundation.NSMakeRect(0, 0, w_pt, h_pt)
+                        cfg = WebKit.WKWebViewConfiguration.alloc().init()
+                        wv = WebKit.WKWebView.alloc().initWithFrame_configuration_(frame, cfg)
+                        self._print_wv = wv
+                        wv.loadHTMLString_baseURL_(html_content, None)
 
-                    def _do_print() -> None:
-                        try:
-                            pinfo = AppKit.NSPrintInfo.sharedPrintInfo().copy()
-                            pinfo.setJobDisposition_(AppKit.NSPrintSaveJob)
-                            pinfo.dictionary()[AppKit.NSPrintJobSavingURL] = Foundation.NSURL.fileURLWithPath_(str(dest))
-                            pinfo.setPaperSize_(Foundation.NSMakeSize(w_pt, h_pt))
-                            pinfo.setOrientation_(
-                                AppKit.NSPaperOrientationLandscape if landscape else AppKit.NSPaperOrientationPortrait
-                            )
-                            pinfo.setTopMargin_(36.0)
-                            pinfo.setBottomMargin_(36.0)
-                            pinfo.setLeftMargin_(36.0)
-                            pinfo.setRightMargin_(36.0)
-                            pinfo.setHorizontalPagination_(AppKit.NSFitPagination)
-                            pinfo.setVerticalPagination_(AppKit.NSAutoPagination)
-                            op = wv.printOperationWithPrintInfo_(pinfo)
-                            op.setShowsPrintPanel_(False)
-                            op.setShowsProgressPanel_(False)
-                            op.runOperation()
-                        except Exception as exc_inner:
-                            err_box.append(str(exc_inner))
-                        finally:
-                            self._print_wv = None
-                            done_evt.set()
+                        def _do_print() -> None:
+                            try:
+                                pinfo = AppKit.NSPrintInfo.sharedPrintInfo().copy()
+                                pinfo.setJobDisposition_(AppKit.NSPrintSaveJob)
+                                pinfo.dictionary()[AppKit.NSPrintJobSavingURL] = Foundation.NSURL.fileURLWithPath_(str(dest))
+                                pinfo.setPaperSize_(Foundation.NSMakeSize(w_pt, h_pt))
+                                pinfo.setOrientation_(
+                                    AppKit.NSPaperOrientationLandscape if landscape else AppKit.NSPaperOrientationPortrait
+                                )
+                                pinfo.setTopMargin_(36.0)
+                                pinfo.setBottomMargin_(36.0)
+                                pinfo.setLeftMargin_(36.0)
+                                pinfo.setRightMargin_(36.0)
+                                pinfo.setHorizontalPagination_(AppKit.NSFitPagination)
+                                pinfo.setVerticalPagination_(AppKit.NSAutoPagination)
+                                op = wv.printOperationWithPrintInfo_(pinfo)
+                                op.setShowsPrintPanel_(False)
+                                op.setShowsProgressPanel_(False)
+                                op.runOperation()
+                            except Exception as exc_inner:
+                                err_box.append(str(exc_inner))
+                            finally:
+                                self._print_wv = None
+                                done_evt.set()
 
-                    AppHelper.callLater(1.2, _do_print)
-                except Exception as exc_outer:
-                    err_box.append(str(exc_outer))
-                    done_evt.set()
+                        AppHelper.callLater(1.2, _do_print)
+                    except Exception as exc_outer:
+                        err_box.append(str(exc_outer))
+                        done_evt.set()
 
-            AppHelper.callAfter(_run_native_print)
-            done_evt.wait(timeout=20.0)
-            if not err_box and dest.exists() and dest.stat().st_size > 200:
-                return {"saved": True, "path": str(dest), "engine": "wkwebview"}
-        except Exception:
-            pass
+                AppHelper.callAfter(_run_native_print)
+                done_evt.wait(timeout=20.0)
+                if not err_box and dest.exists() and dest.stat().st_size > 200:
+                    return {"saved": True, "path": str(dest), "engine": "wkwebview"}
+            except Exception:
+                pass
 
-        # Fallback: headless Chrome --print-to-pdf
+        # Windows primary / macOS fallback: headless Edge/Chrome --print-to-pdf
         try:
             from backend.export.pdf_exporter import render_html_to_pdf_bytes
 
@@ -510,12 +511,12 @@ class DesktopBridge:
         return str(self.data_dir)
 
     def open_data_dir(self) -> bool:
-        subprocess.Popen(["open", str(self.data_dir)])
+        _open_in_file_manager(self.data_dir)
         return True
 
     def open_logs_dir(self) -> bool:
         logs_dir = runtime_state.get_log_path(self.data_dir).parent
-        subprocess.Popen(["open", str(logs_dir)])
+        _open_in_file_manager(logs_dir)
         return True
 
     def get_cli_install_status(self) -> dict[str, object]:
@@ -528,19 +529,27 @@ class DesktopBridge:
         return runtime_state.uninstall_cli_command()
 
     def select_local_folder(self, initial_dir: str = "") -> dict[str, object]:
-        """Open native macOS folder picker (`NSOpenPanel`) for local-folder project binding (D-08)."""
-        import webview
-
-        start_dir = (
-            str(Path(initial_dir).expanduser().resolve())
-            if initial_dir and Path(initial_dir).expanduser().is_dir()
-            else str(Path.home())
-        )
+        """Open native OS folder picker for local-folder project binding (macOS NSOpenPanel / Windows Explorer)."""
         if self.window is None:
             return {"picked": False, "supported": False}
-        dialog_type = getattr(webview, "FileDialog", None)
-        folder_mode = dialog_type.FOLDER if dialog_type is not None else webview.FOLDER_DIALOG
-        result = self.window.create_file_dialog(folder_mode, directory=start_dir)
+
+        from backend.local_workspace import normalize_user_path
+
+        cleaned_init = normalize_user_path(initial_dir)
+        start_dir = (
+            str(Path(cleaned_init).expanduser().resolve())
+            if cleaned_init and Path(cleaned_init).expanduser().is_dir()
+            else str(Path.home())
+        )
+        try:
+            import webview
+
+            dialog_type = getattr(webview, "FileDialog", None)
+            folder_mode = dialog_type.FOLDER if dialog_type is not None else webview.FOLDER_DIALOG
+            result = self.window.create_file_dialog(folder_mode, directory=start_dir)
+        except Exception as exc:
+            return {"picked": False, "supported": False, "detail": str(exc)}
+
         chosen: str | None = None
         if isinstance(result, (list, tuple)) and result:
             chosen = str(result[0])
@@ -832,19 +841,81 @@ def run_headless_smoke_test(url: str, data_dir: Path) -> int:
     finally:
         shutil.rmtree(smoke_dir, ignore_errors=True)
 
-    # Verify native macOS Cocoa / WKWebView / pywebview runtime imports cleanly inside frozen bundle
-    import AppKit  # noqa: F401
-    import Foundation  # noqa: F401
-    import UniformTypeIdentifiers  # noqa: F401
-    import WebKit  # noqa: F401
-    import webview  # noqa: F401
-    from webview.platforms import cocoa  # noqa: F401
-
-    checks["webview_cocoa_ok"] = True
-    checks["webview_version"] = getattr(webview, "__version__", "unknown")
+    # Verify platform-native WebView / pywebview runtime imports cleanly inside frozen bundle
+    checks.update(_verify_native_webview_runtime())
 
     print("PAPERDIFF_SMOKE_TEST_PASS", json.dumps(checks, ensure_ascii=False))
     return 0
+
+
+def _open_in_file_manager(path: Path) -> None:
+    """Open a directory in the OS native file manager (Explorer on Windows, Finder on macOS)."""
+    path.mkdir(parents=True, exist_ok=True)
+    if sys.platform == "win32":
+        os.startfile(str(path))  # type: ignore[attr-defined]
+    elif sys.platform == "darwin":
+        subprocess.Popen(["open", str(path)])
+    else:
+        subprocess.Popen(["xdg-open", str(path)])
+
+
+def _verify_native_webview_runtime() -> dict[str, Any]:
+    """Verify platform-appropriate pywebview native backend imports inside frozen bundles."""
+    import webview  # noqa: F401
+
+    version = getattr(webview, "__version__", "unknown")
+    if sys.platform == "darwin":
+        import AppKit  # noqa: F401
+        import Foundation  # noqa: F401
+        import UniformTypeIdentifiers  # noqa: F401
+        import WebKit  # noqa: F401
+        from webview.platforms import cocoa  # noqa: F401
+
+        return {"webview_cocoa_ok": True, "webview_version": version}
+    if sys.platform == "win32":
+        from webview.platforms import edgechromium  # noqa: F401
+
+        return {"webview_edgechromium_ok": True, "webview_version": version}
+    return {"webview_ok": True, "webview_version": version}
+
+
+def _show_native_error_dialog(title: str, message: str) -> None:
+    """Display an actionable native error dialog when the GUI webview fails to initialize."""
+    if sys.platform == "win32":
+        try:
+            import ctypes
+
+            ctypes.windll.user32.MessageBoxW(0, str(message), str(title), 0x10)
+            return
+        except Exception:
+            pass
+    print(f"[{title}]\n{message}", file=sys.stderr)
+
+
+def _start_webview_with_guard(
+    webview_mod: Any,
+    *,
+    func: Callable[[], None],
+    debug: bool = False,
+) -> int:
+    """Launch `webview.start(...)` and surface a friendly Chinese dialog if WebView2/GUI fails."""
+    try:
+        webview_mod.start(func=func, debug=debug)
+        return 0
+    except Exception as exc:
+        err_text = str(exc)
+        if sys.platform == "win32":
+            msg = (
+                "对稿 · PaperDiff 无法初始化桌面窗口。\n\n"
+                "若您使用的是精简版或早期 Windows 10，请先安装 Microsoft Edge WebView2 Runtime：\n"
+                "https://developer.microsoft.com/microsoft-edge/webview2/\n\n"
+                "您也可以改用项目目录内的「启动PaperDiff.bat」以浏览器模式运行。\n\n"
+                f"详细错误：{err_text}"
+            )
+        else:
+            msg = f"对稿 · PaperDiff 桌面窗口启动失败：{err_text}"
+        _show_native_error_dialog("对稿 · PaperDiff 启动失败", msg)
+        return 2
 
 
 def get_connected_screens() -> list[dict[str, int]]:
@@ -866,23 +937,25 @@ def get_connected_screens() -> list[dict[str, int]]:
             return out
     except Exception:
         pass
-    try:
-        import AppKit
+    if sys.platform == "darwin":
+        try:
+            import AppKit
 
-        out = []
-        for scr in AppKit.NSScreen.screens() or []:
-            f = scr.visibleFrame()
-            out.append(
-                {
-                    "x": int(f.origin.x),
-                    "y": int(f.origin.y),
-                    "width": int(f.size.width),
-                    "height": int(f.size.height),
-                }
-            )
-        return out
-    except Exception:
-        return []
+            out = []
+            for scr in AppKit.NSScreen.screens() or []:
+                f = scr.visibleFrame()
+                out.append(
+                    {
+                        "x": int(f.origin.x),
+                        "y": int(f.origin.y),
+                        "width": int(f.size.width),
+                        "height": int(f.size.height),
+                    }
+                )
+            return out
+        except Exception:
+            return []
+    return []
 
 
 def resolve_initial_window_geometry(
@@ -928,6 +1001,12 @@ def _parse_desktop_open_path(argv: list[str]) -> str | None:
 
 
 def main() -> None:
+    for _stream in (sys.stdout, sys.stderr):
+        if _stream is not None and hasattr(_stream, "reconfigure"):
+            try:
+                _stream.reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
     data_dir = runtime_state.resolve_data_dir()
     requested_port = int(os.environ.get("PAPERDIFF_PORT", "0") or "0")
     open_path_arg = _parse_desktop_open_path(sys.argv)
@@ -994,11 +1073,14 @@ def main() -> None:
         win.events.closing += lambda: persist_window_geometry(data_dir, win)
     except Exception:
         pass
+    rc = 0
     try:
-        webview.start(func=lambda: controller.boot_async(win), debug=False)
+        rc = _start_webview_with_guard(webview, func=lambda: controller.boot_async(win), debug=False)
     finally:
         persist_window_geometry(data_dir, win)
         controller.shutdown()
+    if rc != 0:
+        sys.exit(rc)
 
 
 if __name__ == "__main__":

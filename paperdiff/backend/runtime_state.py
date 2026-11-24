@@ -33,10 +33,11 @@ from typing import Any, Callable, Iterator
 import urllib.error
 import urllib.request
 
-APP_VERSION = "0.1.0"
+APP_VERSION = "0.2.0"
 LOCK_FILENAME = "server.lock"
 INIT_LOCK_FILENAME = "server.lock.init"
 WINDOW_STATE_FILENAME = "window_state.json"
+PORTABLE_FLAG_FILENAME = "portable.flag"
 LOGS_SUBDIR = "logs"
 LOG_FILENAME = "server.log"
 LOG_MAX_BYTES = 2 * 1024 * 1024  # 2 MB
@@ -56,18 +57,61 @@ _RUNTIME_CONTEXT: dict[str, Any] = {
 _SHUTDOWN_CALLBACK: Callable[[], None] | None = None
 
 
+def _resolve_default_frozen_data_dir() -> Path:
+    """Return the platform-standard per-user data directory for frozen desktop binaries."""
+    if sys.platform == "win32":
+        local_app = os.environ.get("LOCALAPPDATA", "").strip()
+        if local_app:
+            return Path(local_app).expanduser() / "PaperDiff"
+        return Path.home() / "AppData" / "Local" / "PaperDiff"
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "PaperDiff"
+    xdg_data = os.environ.get("XDG_DATA_HOME", "").strip()
+    if xdg_data:
+        return Path(xdg_data).expanduser() / "PaperDiff"
+    return Path.home() / ".local" / "share" / "PaperDiff"
+
+
 def resolve_data_dir(explicit: str | Path | None = None) -> Path:
-    """Resolve active DATA_DIR identically to `backend.database._resolve_data_dir`."""
+    """Resolve active DATA_DIR identically to `backend.database._resolve_data_dir`.
+
+    Resolution precedence:
+        1. Explicit `explicit` argument or `PAPERDIFF_DATA_DIR` environment variable.
+        2. Portable mode when `sys.frozen` is True and `<exe_dir>/portable.flag` exists
+           (uses `<exe_dir>/data`, falling back to the OS per-user dir if read-only).
+        3. Platform-standard frozen per-user directory (`%LOCALAPPDATA%\\PaperDiff` on Windows,
+           `~/Library/Application Support/PaperDiff` on macOS).
+        4. Local `paperdiff/data/` directory during source development.
+    """
     if explicit is not None and str(explicit).strip():
         target = Path(explicit).expanduser().resolve()
-    else:
-        env_dir = os.environ.get("PAPERDIFF_DATA_DIR", "").strip()
-        if env_dir:
-            target = Path(env_dir).expanduser().resolve()
-        elif getattr(sys, "frozen", False):
-            target = Path.home() / "Library" / "Application Support" / "PaperDiff"
-        else:
-            target = Path(__file__).resolve().parent.parent / "data"
+        target.mkdir(parents=True, exist_ok=True)
+        return target
+
+    env_dir = os.environ.get("PAPERDIFF_DATA_DIR", "").strip()
+    if env_dir:
+        target = Path(env_dir).expanduser().resolve()
+        target.mkdir(parents=True, exist_ok=True)
+        return target
+
+    if getattr(sys, "frozen", False):
+        exe_dir = Path(sys.executable).resolve(strict=False).parent
+        if (exe_dir / PORTABLE_FLAG_FILENAME).exists():
+            portable_target = (exe_dir / "data").resolve(strict=False)
+            try:
+                portable_target.mkdir(parents=True, exist_ok=True)
+                probe = portable_target / f".write_probe_{os.getpid()}"
+                probe.write_bytes(b"")
+                probe.unlink(missing_ok=True)
+                return portable_target
+            except OSError:
+                # Read-only removable media or protected folder -> safe fallback
+                pass
+        target = _resolve_default_frozen_data_dir().resolve(strict=False)
+        target.mkdir(parents=True, exist_ok=True)
+        return target
+
+    target = (Path(__file__).resolve().parent.parent / "data").resolve(strict=False)
     target.mkdir(parents=True, exist_ok=True)
     return target
 
@@ -668,6 +712,8 @@ CLI_SUPPORTED_FILE_EXTS = {".tex", ".ltx", ".docx", ".md", ".markdown", ".txt", 
 def validate_cli_target_path(raw_path: str) -> Path:
     """Pre-validate a local directory or supported file path before starting/contacting server."""
     cleaned = (raw_path or "").strip()
+    if len(cleaned) >= 2 and cleaned[0] == cleaned[-1] and cleaned[0] in ('"', "'"):
+        cleaned = cleaned[1:-1].strip()
     if not cleaned:
         raise ValueError("目标路径不能为空")
     target = Path(cleaned).expanduser().resolve(strict=False)
@@ -723,22 +769,45 @@ def post_open_local_path(
         raise RuntimeError(detail or f"打开本地路径失败（HTTP {exc.code}）") from exc
 
 
+def _cli_script_name() -> str:
+    return "paperdiff.cmd" if sys.platform == "win32" else "paperdiff"
+
+
 def get_default_cli_bin_dir() -> Path:
+    if sys.platform == "win32":
+        if getattr(sys, "frozen", False):
+            return Path(sys.executable).resolve(strict=False).parent
+        local_app = os.environ.get("LOCALAPPDATA", "").strip()
+        base = Path(local_app).expanduser() if local_app else (Path.home() / "AppData" / "Local")
+        return base / "PaperDiff" / "bin"
     return Path.home() / ".local" / "bin"
 
 
 def _is_dir_in_path(bin_dir: Path, path_env: str | None = None) -> bool:
     env_val = os.environ.get("PATH", "") if path_env is None else path_env
     resolved_bin = bin_dir.expanduser().resolve(strict=False)
-    for entry in env_val.split(os.pathsep):
-        if not entry.strip():
+    sep = ";" if (sys.platform == "win32" and ";" in env_val) else os.pathsep
+    bin_norm = str(resolved_bin).rstrip("\\/").lower() if sys.platform == "win32" else str(resolved_bin)
+    for entry in env_val.split(sep):
+        cleaned = entry.strip().strip('"')
+        if not cleaned:
             continue
         try:
-            if Path(entry).expanduser().resolve(strict=False) == resolved_bin:
+            cand = Path(cleaned).expanduser().resolve(strict=False)
+            if sys.platform == "win32":
+                if str(cand).rstrip("\\/").lower() == bin_norm:
+                    return True
+            elif cand == resolved_bin:
                 return True
         except OSError:
             continue
     return False
+
+
+def _format_cli_path_hint(target_dir: Path) -> str:
+    if sys.platform == "win32":
+        return f'setx PATH "%PATH%;{target_dir}"'
+    return f'export PATH="{target_dir}:$PATH"'
 
 
 def get_cli_install_status(
@@ -747,10 +816,10 @@ def get_cli_install_status(
     path_env: str | None = None,
 ) -> dict[str, Any]:
     target_dir = Path(bin_dir).expanduser().resolve(strict=False) if bin_dir else get_default_cli_bin_dir()
-    script_path = target_dir / "paperdiff"
+    script_path = target_dir / _cli_script_name()
     installed = script_path.exists() and script_path.is_file()
     in_path = _is_dir_in_path(target_dir, path_env=path_env)
-    path_hint = f'export PATH="{target_dir}:$PATH"'
+    path_hint = _format_cli_path_hint(target_dir)
     return {
         "installed": installed,
         "script_path": str(script_path),
@@ -761,6 +830,16 @@ def get_cli_install_status(
 
 
 def _build_cli_wrapper_content(executable_target: str | Path | None = None) -> str:
+    if sys.platform == "win32":
+        if executable_target is not None:
+            target_str = str(Path(executable_target).expanduser().resolve(strict=False))
+            return f'@echo off\r\n"{target_str}" --open %*\r\n'
+        if getattr(sys, "frozen", False):
+            exe = str(Path(sys.executable).resolve(strict=False))
+            return f'@echo off\r\n"{exe}" --open %*\r\n'
+        launcher = str((Path(__file__).resolve().parent.parent / "launch_desktop.py").resolve(strict=False))
+        py_exe = str(Path(sys.executable).resolve(strict=False))
+        return f'@echo off\r\n"{py_exe}" "{launcher}" --daemon %*\r\n'
     if executable_target is not None:
         target_str = str(Path(executable_target).expanduser().resolve())
         return f'#!/bin/sh\nexec "{target_str}" --open "$@"\n'
@@ -778,21 +857,21 @@ def install_cli_command(
     executable_target: str | Path | None = None,
     path_env: str | None = None,
 ) -> dict[str, Any]:
-    """Install executable `paperdiff` CLI wrapper into user-writable bin dir (default `~/.local/bin`)."""
+    """Install executable `paperdiff` CLI wrapper (`paperdiff` on POSIX, `paperdiff.cmd` on Windows)."""
     target_dir = Path(bin_dir).expanduser().resolve(strict=False) if bin_dir else get_default_cli_bin_dir()
-    script_path = target_dir / "paperdiff"
+    script_path = target_dir / _cli_script_name()
     in_path = _is_dir_in_path(target_dir, path_env=path_env)
-    path_hint = f'export PATH="{target_dir}:$PATH"'
+    path_hint = _format_cli_path_hint(target_dir)
     wrapper = _build_cli_wrapper_content(executable_target=executable_target)
 
     try:
         target_dir.mkdir(parents=True, exist_ok=True)
         tmp_path = target_dir / f".paperdiff.tmp.{os.getpid()}"
         tmp_path.write_text(wrapper, encoding="utf-8")
-        if os.name == "posix":
+        if os.name == "posix" and sys.platform != "win32":
             os.chmod(tmp_path, 0o755)
         os.replace(tmp_path, script_path)
-        if os.name == "posix":
+        if os.name == "posix" and sys.platform != "win32":
             os.chmod(script_path, 0o755)
         return {
             "installed": True,
@@ -802,19 +881,20 @@ def install_cli_command(
             "path_hint": path_hint,
         }
     except OSError as exc:
+        fallback_hint = "%LOCALAPPDATA%\\PaperDiff\\bin" if sys.platform == "win32" else "~/.local/bin"
         return {
             "installed": False,
             "script_path": str(script_path),
             "bin_dir": str(target_dir),
             "in_path": in_path,
             "path_hint": path_hint,
-            "error": f"无权写入 {script_path}（{exc}），可改用用户目录 ~/.local/bin 或手动创建命令软链。",
+            "error": f"无权写入 {script_path}（{exc}），可改用用户目录 {fallback_hint} 或手动创建命令包装。",
         }
 
 
 def uninstall_cli_command(*, bin_dir: str | Path | None = None) -> dict[str, Any]:
     target_dir = Path(bin_dir).expanduser().resolve(strict=False) if bin_dir else get_default_cli_bin_dir()
-    script_path = target_dir / "paperdiff"
+    script_path = target_dir / _cli_script_name()
     if not script_path.exists():
         return {"installed": False, "removed": False, "script_path": str(script_path)}
     try:

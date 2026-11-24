@@ -47,7 +47,10 @@ paperdiff/build/
 paperdiff/dist/
 paperdiff/packaging/build_work/
 paperdiff/packaging/dist_out/
+paperdiff/packaging/build_work_win/
+paperdiff/packaging/dist_out_win/
 paperdiff/packaging/*.iconset/
+paperdiff/packaging/PaperDiff.ico
 /release/
 *.spec.bak
 

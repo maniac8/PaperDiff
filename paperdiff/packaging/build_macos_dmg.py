@@ -31,7 +31,7 @@ SOURCE_ICON_PNG = PROJECT_ROOT / "branding" / "release" / "app-icon-macos-1024.p
 ICNS_PATH = PACKAGING_DIR / "PaperDiff.icns"
 GUIDE_MD = PROJECT_ROOT / "产品使用指南.md"
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 ARCH = platform.machine()  # arm64 / x86_64
 RELEASE_DIR = PROJECT_ROOT / "release"
 BUILD_WORK = PACKAGING_DIR / "build_work"
