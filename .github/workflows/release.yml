@@ -145,7 +145,7 @@ jobs:
 
       - name: Upload extracted release notes
         if: steps.notes.outputs.has_notes == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-notes
           path: release-notes.md
@@ -191,7 +191,7 @@ jobs:
         run: paperdiff/.venv_pkg/bin/python -u paperdiff/packaging/build_macos_dmg.py
 
       - name: Upload macOS release artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-macos
           path: release/PaperDiff-*.dmg
@@ -245,7 +245,7 @@ jobs:
           paperdiff\.venv_pkg\Scripts\python.exe -u paperdiff/packaging/build_windows_release.py
 
       - name: Upload Windows release artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-windows
           path: |
@@ -265,20 +265,20 @@ jobs:
       TAG_NAME: ${{ needs.verify.outputs.tag_name }}
     steps:
       - name: Download macOS artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: release-macos
           path: dist_release
 
       - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: release-windows
           path: dist_release
 
       - name: Download release notes
         if: needs.verify.outputs.has_notes == 'true'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: release-notes
           path: dist_notes

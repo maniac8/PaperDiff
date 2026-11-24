@@ -441,16 +441,24 @@ def test_w2_t07_t08_resume_card_auto_resume_invalid_fallback_and_cli_ui_cdp(tmp_
 
         def wait_for(expr: str, timeout: float = 8.0) -> object:
             end = time.monotonic() + timeout
+            last_err: Exception | None = None
             while time.monotonic() < end:
-                val = eval_js(expr)
-                if val:
-                    return val
+                try:
+                    val = eval_js(expr)
+                    if val:
+                        return val
+                    last_err = None
+                except AssertionError as exc:
+                    # Tolerate transient mid-navigation DOM states (e.g. null document.body)
+                    last_err = exc
                 time.sleep(0.12)
+            if last_err is not None:
+                raise AssertionError(f"Timeout waiting for: {expr} (last error: {last_err})") from last_err
             raise AssertionError(f"Timeout waiting for: {expr}")
 
         # 1. Visit Alpha project via handoff URL so `paperdiff_last_workspace` gets saved
         cdp.send("Page.navigate", {"url": f"{base_url}/?project={pid_a}&file=alpha.md"})
-        wait_for("document.body.innerText.includes('Alpha body paragraph for W2 resume test')")
+        wait_for("(document.body && document.body.innerText || '').includes('Alpha body paragraph for W2 resume test')")
 
         # 2. Navigate back to Home `/` -> default stays on Home (auto-resume OFF) and shows Resume Card!
         cdp.send("Page.navigate", {"url": f"{base_url}/"})
@@ -494,7 +502,7 @@ def test_w2_t07_t08_resume_card_auto_resume_invalid_fallback_and_cli_ui_cdp(tmp_
 
         # 3. Click「继续上次工作区」-> lands straight into alpha.md
         eval_js("document.querySelector('[data-resume-open-btn]').click()")
-        wait_for("document.body.innerText.includes('Alpha body paragraph for W2 resume test')")
+        wait_for("(document.body && document.body.innerText || '').includes('Alpha body paragraph for W2 resume test')")
 
         # 4. Return Home, turn ON auto-resume toggle, reload `/` -> auto-lands in alpha.md!
         cdp.send("Page.navigate", {"url": f"{base_url}/"})
@@ -502,11 +510,11 @@ def test_w2_t07_t08_resume_card_auto_resume_invalid_fallback_and_cli_ui_cdp(tmp_
         eval_js("document.querySelector('[data-auto-resume-toggle]').click()")
         wait_for("document.querySelector('[data-auto-resume-toggle]').checked === true")
         cdp.send("Page.navigate", {"url": f"{base_url}/"})
-        wait_for("document.body.innerText.includes('Alpha body paragraph for W2 resume test')")
+        wait_for("(document.body && document.body.innerText || '').includes('Alpha body paragraph for W2 resume test')")
 
         # 5. Explicit `/?project=<pid_b>&file=beta.md` MUST override auto-resume!
         cdp.send("Page.navigate", {"url": f"{base_url}/?project={pid_b}&file=beta.md"})
-        wait_for("document.body.innerText.includes('Beta body paragraph for explicit override')")
+        wait_for("(document.body && document.body.innerText || '').includes('Beta body paragraph for explicit override')")
 
         # 6. Move `dir_b` away on disk & reload `/` -> gracefully falls back to Home with invalid badge + relocate button!
         shutil.move(str(dir_b), str(tmp_path / "paper_beta_moved"))

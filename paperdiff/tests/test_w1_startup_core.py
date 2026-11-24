@@ -813,17 +813,25 @@ def test_w1_t11_t12_t13_pwa_splash_topbar_controls_and_context_handoff_cdp(tmp_p
 
         def wait_for(expr: str, timeout: float = 8.0) -> object:
             end = time.monotonic() + timeout
+            last_err: Exception | None = None
             while time.monotonic() < end:
-                val = eval_js(expr)
-                if val:
-                    return val
+                try:
+                    val = eval_js(expr)
+                    if val:
+                        return val
+                    last_err = None
+                except AssertionError as exc:
+                    # Tolerate transient mid-navigation DOM states (e.g. null document.body)
+                    last_err = exc
                 time.sleep(0.12)
+            if last_err is not None:
+                raise AssertionError(f"Timeout waiting for: {expr} (last error: {last_err})") from last_err
             raise AssertionError(f"Timeout waiting for: {expr}")
 
         # 1. Load homepage and verify splash dismissed + zero errors + Web status pill present
         cdp.send("Page.navigate", {"url": f"{base_url}/"})
         wait_for("document.querySelector('[data-runtime-status-pill]') !== null")
-        assert eval_js("document.getElementById('pd-boot-splash') === null") is True
+        wait_for("document.getElementById('pd-boot-splash') === null")
         pill_text = str(eval_js("document.querySelector('[data-runtime-status-pill]').textContent"))
         assert f":{port}" in pill_text
         assert eval_js("document.querySelector('[data-runtime-open-browser]') === null") is True
@@ -892,7 +900,7 @@ def test_w1_t11_t12_t13_pwa_splash_topbar_controls_and_context_handoff_cdp(tmp_p
             },
         )["identifier"]
         cdp.send("Page.navigate", {"url": f"{base_url}/?project={pid}&file=v1.md"})
-        wait_for("document.body.innerText.includes('W1 启动体验验收的测试段落')")
+        wait_for("(document.body && document.body.innerText || '').includes('W1 启动体验验收的测试段落')")
         wait_for("document.querySelector('[data-runtime-open-browser]') !== null")
         assert eval_js("document.querySelector('[data-runtime-status-pill]') === null") is True
         eval_js("document.querySelector('[data-runtime-open-browser]').click()")
@@ -903,7 +911,7 @@ def test_w1_t11_t12_t13_pwa_splash_topbar_controls_and_context_handoff_cdp(tmp_p
         # Remove desktop stub and reload in pure Web mode on the same local project to test W1-T12 draft-protected stop
         cdp.send("Page.removeScriptToEvaluateOnNewDocument", {"identifier": script_id})
         cdp.send("Page.navigate", {"url": f"{base_url}/?project={pid}&file=v1.md"})
-        wait_for("document.body.innerText.includes('W1 启动体验验收的测试段落')")
+        wait_for("(document.body && document.body.innerText || '').includes('W1 启动体验验收的测试段落')")
         wait_for("document.querySelector('[data-runtime-status-pill]') !== null")
 
         # Trigger an inline paragraph edit so Draft Dock has 1 unsaved edit
@@ -935,7 +943,7 @@ def test_w1_t11_t12_t13_pwa_splash_topbar_controls_and_context_handoff_cdp(tmp_p
               }
             })()"""
         )
-        wait_for("document.body.innerText.includes('保存到本地')")
+        wait_for("(document.body && document.body.innerText || '').includes('保存到本地')")
 
         # Click Web status pill -> Stop -> MUST show draft protection confirmation modal!
         eval_js("document.querySelector('[data-runtime-status-pill]').click()")
