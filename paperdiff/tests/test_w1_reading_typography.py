@@ -621,18 +621,30 @@ def test_w1_t10_t11_t12_browser_typography_themes_and_diff() -> None:
                     if (span) {{ span.click(); break; }}
                     await wait(100);
                   }}
-                  for (let i = 0; i < 50; i++) {{
-                    const readBtn = Array.from(document.querySelectorAll('button')).find(
-                      b => b.textContent && b.textContent.trim() === '阅读'
-                    );
-                    if (readBtn) {{ readBtn.click(); break; }}
-                    await wait(100);
-                  }}
+                  // Wait for initial document fetch & default mode render to settle first
                   for (let i = 0; i < 60; i++) {{
                     if (document.body.innerText.includes({json.dumps(expected_text)})) break;
                     await wait(100);
                   }}
-                  await wait(200);
+                  // Then switch to Single-Doc Read mode and ensure it stays active
+                  for (let i = 0; i < 60; i++) {{
+                    const readBtn = Array.from(document.querySelectorAll('button')).find(
+                      b => b.textContent && b.textContent.trim() === '阅读'
+                    );
+                    const isReadActive = !!(readBtn && readBtn.className.includes('text-blue-700'));
+                    if (readBtn && !isReadActive) {{
+                      readBtn.click();
+                    }} else if (
+                      isReadActive &&
+                      document.body.innerText.includes({json.dumps(expected_text)}) &&
+                      document.querySelectorAll('[id^="para-"]').length > 0 &&
+                      !document.body.innerText.includes('正在解析学术排版')
+                    ) {{
+                      break;
+                    }}
+                    await wait(100);
+                  }}
+                  await wait(250);
                   return {{
                     blocks: document.querySelectorAll('[id^="para-"]').length,
                     prefs: JSON.parse(window.localStorage.getItem('paperdiff_ui_prefs') || '{{}}'),
