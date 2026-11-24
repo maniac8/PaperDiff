@@ -125,7 +125,7 @@ def promo_banner_html(theme: str) -> str:
     <div class="left">
       <div class="eyebrow">LOCAL-FIRST ACADEMIC WORKBENCH · 100% 本地零上传</div>
       <div class="wm">Paper<span style="color:{blue}">Diff</span><span class="vbar"></span><span class="zh">对稿</span></div>
-      <div class="sub">面向 AI 科研写作的学术文稿纯净阅读、版本比对与无损回写工作台</div>
+      <div class="sub">支持 LaTeX / Word / Markdown 的学术文稿精读、比对与无损修订工作台</div>
       <div class="tags">{tag_html}</div>
     </div>
     <div class="right">

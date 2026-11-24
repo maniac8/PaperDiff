@@ -823,7 +823,17 @@ def test_w1_t11_t12_t13_pwa_splash_topbar_controls_and_context_handoff_cdp(tmp_p
         wait_for("document.querySelector('[data-runtime-popover]') !== null")
         for theme_name in ("light", "sepia", "dark"):
             eval_js(f"document.documentElement.dataset.theme = '{theme_name}'")
-            time.sleep(0.05)
+            # Wait past Tailwind's 150ms transition-colors duration so computed colors settle
+            time.sleep(0.35)
+            eval_js(
+                """(() => {
+                  const pill = document.querySelector('[data-runtime-status-pill]');
+                  if (pill && typeof pill.getAnimations === 'function') {
+                    pill.getAnimations().forEach((a) => a.finish());
+                  }
+                  return true;
+                })()"""
+            )
             ratios = eval_js(
                 """(() => {
                   const parseRgb = (s) => {
