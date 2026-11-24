@@ -73,7 +73,7 @@
   <text x="70" y="92" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Segoe UI', Roboto, sans-serif" font-size="13.5" font-weight="700" fill="#F8FAFC">双渠道本地客户端</text>
   <g><rect x="334" y="80" width="132" height="22" rx="11" fill="#0C2E24" stroke="#166534" stroke-width="1" /><text x="400.0" y="91.5" text-anchor="middle" dominant-baseline="central" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="10" font-weight="600" fill="#4ADE80">60 FPS · 离线 SPA</text></g>
   <text x="44" y="120" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Segoe UI', Roboto, sans-serif" font-size="11.5" font-weight="500" fill="#94A3B8">React 18 + TypeScript SPA · 4,000 条全局 KaTeX 缓存</text>
-  <text x="44" y="139" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Segoe UI', Roboto, sans-serif" font-size="10.5" fill="#64748B">macOS 原生桌面壳 (WKWebView) · Windows/Linux 静默 Web 与 CLI</text>
+  <text x="44" y="139" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Segoe UI', Roboto, sans-serif" font-size="10.5" fill="#64748B">macOS WKWebView · Windows Edge WebView2 原生桌面壳 · 跨平台 PWA 与 CLI</text>
 
   <!-- Tier 1 Bridge Arrow -->
   <line x1="480" y1="110" x2="514" y2="110" stroke="#64748B" stroke-width="1.5" marker-end="url(#arrowNeutral)" />
@@ -169,7 +169,7 @@
   <text x="714" y="389" dominant-baseline="central" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Segoe UI', Roboto, sans-serif" font-size="12.5" font-weight="700" fill="#F8FAFC">离线出版级 PDF 导出</text>
   <g><rect x="882" y="377" width="62" height="22" rx="11" fill="#0C2E24" stroke="#166534" stroke-width="1" /><text x="913.0" y="388.5" text-anchor="middle" dominant-baseline="central" font-family="SFMono-Regular, Menlo, Consolas, monospace" font-size="9.5" font-weight="600" fill="#4ADE80">1.8 ms</text></g>
   <text x="714" y="417" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Segoe UI', Roboto, sans-serif" font-size="10.8" font-weight="500" fill="#94A3B8">自包含离线 KaTeX HTML + Base64 图</text>
-  <text x="714" y="435" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Segoe UI', Roboto, sans-serif" font-size="10.5" fill="#64748B">WKWebView / Chrome 矢量分页 PDF</text>
+  <text x="714" y="435" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Segoe UI', Roboto, sans-serif" font-size="10.5" fill="#64748B">WKWebView / Edge·Chrome 矢量分页 PDF</text>
   <text x="714" y="453" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Segoe UI', Roboto, sans-serif" font-size="10.5" fill="#64748B">审校讲解报告 · 精简清单 · 单稿精排</text>
 
   <!-- Bottom KPI Summary Bar -->

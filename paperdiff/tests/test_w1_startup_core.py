@@ -310,7 +310,7 @@ def test_w1_t05_health_contract_and_csrf_protected_shutdown(tmp_path: Path) -> N
         assert h.status_code == 200
         body = h.json()
         assert body["status"] == "ok"
-        assert body["version"] == "0.1.0"
+        assert body["version"] == runtime_state.APP_VERSION
         assert body["pid"] == os.getpid()
         assert body["port"] == 8765
         assert Path(body["data_dir"]).resolve() == tmp_path.resolve()
@@ -412,6 +412,7 @@ def test_w1_t06_web_daemon_single_instance_status_and_stop(tmp_path: Path) -> No
     env["PAPERDIFF_DATA_DIR"] = str(data_dir)
     env["PAPERDIFF_PORT"] = str(port)
     env["PAPERDIFF_NO_BROWSER"] = "1"
+    env["PYTHONUTF8"] = "1"
     launcher = str(PAPERDIFF_ROOT / "launch_desktop.py")
 
     try:
@@ -421,6 +422,8 @@ def test_w1_t06_web_daemon_single_instance_status_and_stop(tmp_path: Path) -> No
             env=env,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=20,
         )
         assert r1.returncode == 0, f"--daemon failed: stdout={r1.stdout} stderr={r1.stderr}"
@@ -440,6 +443,8 @@ def test_w1_t06_web_daemon_single_instance_status_and_stop(tmp_path: Path) -> No
             env=env,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=15,
         )
         assert r2.returncode == 0, f"2nd --daemon failed: {r2.stderr}"
@@ -455,6 +460,8 @@ def test_w1_t06_web_daemon_single_instance_status_and_stop(tmp_path: Path) -> No
             env=env,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=10,
         )
         assert r_st.returncode == 0
@@ -469,6 +476,8 @@ def test_w1_t06_web_daemon_single_instance_status_and_stop(tmp_path: Path) -> No
             env=env,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=15,
         )
         assert r_stop.returncode == 0
@@ -550,11 +559,12 @@ def test_w1_t07_windows_cross_platform_launcher_and_dual_scripts() -> None:
     assert "--daemon" in win_start.read_text(encoding="utf-8")
     assert "--stop" in win_stop.read_text(encoding="utf-8")
 
-    # bash -n syntax validation for macOS .command scripts
-    for sh_file in (mac_start, mac_stop):
-        chk = subprocess.run(["bash", "-n", str(sh_file)], capture_output=True, text=True)
-        assert chk.returncode == 0, f"Syntax error in {sh_file}: {chk.stderr}"
-        assert os.access(sh_file, os.X_OK), f"{sh_file} must be executable"
+    # bash -n syntax validation & executable bit check on POSIX platforms
+    if os.name == "posix":
+        for sh_file in (mac_start, mac_stop):
+            chk = subprocess.run(["bash", "-n", str(sh_file)], capture_output=True, text=True)
+            assert chk.returncode == 0, f"Syntax error in {sh_file}: {chk.stderr}"
+            assert os.access(sh_file, os.X_OK), f"{sh_file} must be executable"
 
 
 # ---------------------------------------------------------------------------

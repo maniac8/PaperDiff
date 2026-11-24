@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cross-Platform (macOS + Windows) Web Mode Launcher for 对稿 · PaperDiff Studio (v0.1.0).
+"""Cross-Platform (macOS + Windows) Web Mode Launcher for 对稿 · PaperDiff Studio (v0.2.0).
 
 Supports:
     - Single-instance reuse per `DATA_DIR` via `backend.runtime_state` (`server.lock` + `/api/health`).
@@ -29,6 +29,13 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from backend import runtime_state  # noqa: E402
+
+for _stream in (sys.stdout, sys.stderr):
+    if _stream is not None and hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
 
 DETACHED_PROCESS = 0x00000008
 CREATE_NEW_PROCESS_GROUP = 0x00000200

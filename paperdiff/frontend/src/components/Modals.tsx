@@ -86,7 +86,7 @@ export const NewProjectModal: React.FC<{
       if (res.valid && res.resolved_path) {
         setLocalPath(res.resolved_path);
         if (!name.trim()) {
-          const segs = res.resolved_path.replace(/\/+$/, '').split('/');
+          const segs = res.resolved_path.replace(/[\\/]+$/, '').split(/[\\/]/).filter(Boolean);
           const base = segs[segs.length - 1];
           if (base) setName(base);
         }
@@ -224,7 +224,7 @@ export const NewProjectModal: React.FC<{
                   setLocalPath(e.target.value);
                   setFolderVal(null);
                 }}
-                placeholder="例如：/Users/yourname/Papers/NeurIPS_2026_Draft"
+                placeholder="例如：D:\Papers\MyPaper 或 /Users/name/Papers/MyPaper"
                 className="flex-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 font-mono text-xs focus:border-teal-500 focus:outline-none"
               />
               <button
@@ -1730,6 +1730,8 @@ export const LocalBindingModal: React.FC<{
         setNewPath(res.path);
         const v = await api.validateLocalFolder(res.path);
         setValRes(v);
+      } else if (res.supported === false) {
+        setErr(res.detail || '当前环境请直接粘贴本地文件夹绝对路径');
       }
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : '无法打开目录选择器');

@@ -28,7 +28,7 @@
 
 ### 维护者发版流程（Release Flow）
 
-1. 在 `dev` 上同步更新版本号（`paperdiff/backend/runtime_state.py`、`paperdiff/frontend/package.json`、`paperdiff/packaging/build_macos_dmg.py`、`paperdiff/packaging/PaperDiff.spec`）与 [CHANGELOG.md](./CHANGELOG.md) 中的 `## [X.Y.Z] - YYYY-MM-DD` 段落，跑完本地全量测试后提交。
+1. 在 `dev` 上同步更新 6 处版本号（`paperdiff/backend/runtime_state.py`、`paperdiff/frontend/package.json`、`paperdiff/packaging/build_macos_dmg.py`、`paperdiff/packaging/PaperDiff.spec`、`paperdiff/packaging/build_windows_release.py`、`paperdiff/packaging/PaperDiff.iss`）与 [CHANGELOG.md](./CHANGELOG.md) 中的 `## [X.Y.Z] - YYYY-MM-DD` 段落，跑完本地全量测试后提交。
 2. 发起 Release PR：`dev` → `main`，等待全部 CI 检查通过。
 3. 使用 **Create a merge commit** 合并 `dev` → `main`（**避免在 `dev` → `main` 使用 Squash**，以保持双分支历史对齐）。
 4. 拉取合并后的 `main`，打并推送语义化 tag：
@@ -36,7 +36,7 @@
    git checkout main && git pull origin main
    git tag vX.Y.Z && git push origin vX.Y.Z
    ```
-   推送 `vX.Y.Z` 会自动触发 `.github/workflows/release.yml`：校验 tag 位于 `main`、校验四处版本号一致、运行全量测试、在 `macos-14` 构建并验证独立 `.dmg` 与 `SHA256SUMS.txt`、自动提取 `CHANGELOG.md` 说明并发布 GitHub Release。
+   推送 `vX.Y.Z` 会自动触发 `.github/workflows/release.yml`：校验 tag 位于 `main`、校验六处双端版本号一致、并行在 `macos-latest` 与 `windows-latest` 上运行全量测试并构建验证 macOS `.dmg` 与 Windows `Setup.exe` / `Portable.zip`、汇总生成统一 `SHA256SUMS.txt`、自动提取 `CHANGELOG.md` 说明并原子发布 GitHub Release（也可通过 **Actions → Release → Run workflow** 先产出预发布测试包供真机验证）。
 5. 将 `main` 同步回 `dev` 以防下一周期冲突：
    ```bash
    git checkout dev && git merge main && git push origin dev
@@ -49,7 +49,7 @@
 ### 环境要求
 - **Python**: `3.11+`（macOS 独立打包推荐使用 `Python 3.12`）
 - **Node.js**: `20+`（含 `npm`）
-- **操作系统**: macOS Apple Silicon / Intel（跨平台 Web 模式兼容 Windows / Linux）
+- **操作系统**: macOS Apple Silicon / Intel、Windows 10/11 (x64) 原生桌面端，以及 Linux 跨平台 Web 模式
 
 ### 安装与运行
 ```bash
@@ -61,7 +61,7 @@ cd paperdiff/frontend
 npm ci && npm run build
 cd ../..
 
-# 3. 启动本地桌面窗口（macOS WKWebView 原生模式）
+# 3. 启动本地桌面窗口（macOS WKWebView / Windows Edge WebView2 原生模式）
 python3 paperdiff/desktop_app.py
 
 # 或启动跨平台 Web 后台模式（默认 http://127.0.0.1:8765）
@@ -93,8 +93,8 @@ python3 paperdiff/launch_desktop.py --daemon
 2. **零外部网络与隐私红线**：不得引入任何强制外网 CDN、埋点遥测或云端模型调用；确保离线断网状态下阅读、KaTeX、Mermaid 与 PDF 导出 100% 可用。
 3. **全量测试通过**：
    ```bash
-   # 后端与真实 Chrome CDP 端到端全量回归（59 项）
-   cd paperdiff && python3 -m pytest -W ignore -v
+   # 后端与真实 Chrome CDP 端到端全量回归（76 项）
+   cd paperdiff && python3 -m pytest -W ignore -v --ignore=tests/test_performance_benchmark.py
 
    # 前端纯函数单元测试（14 项）与严格 TypeScript 构建
    cd paperdiff/frontend
