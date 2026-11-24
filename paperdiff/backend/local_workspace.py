@@ -20,6 +20,7 @@ import re
 import tempfile
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote, urlparse
 
 from .assets import ALLOWED_IMAGE_EXTS, parse_bibtex_entries, save_asset_bytes
 from .parsers import (
@@ -134,11 +135,29 @@ def _is_ignored_file(name: str) -> bool:
     return suffix in IGNORED_FILE_EXTS
 
 
+def normalize_user_path(raw_path: str | Path | None) -> str:
+    """Normalize user-pasted paths across macOS/Windows/Linux (strip Explorer quotes and file:// URIs)."""
+    if raw_path is None:
+        return ""
+    s = str(raw_path).strip()
+    if len(s) >= 2 and s[0] == s[-1] and s[0] in ('"', "'"):
+        s = s[1:-1].strip()
+    if s.lower().startswith("file://"):
+        parsed = urlparse(s)
+        decoded = unquote(parsed.path or "")
+        # Windows file:///C:/Users/... -> C:/Users/...
+        if len(decoded) >= 3 and decoded[0] == "/" and decoded[2] == ":" and decoded[1].isalpha():
+            decoded = decoded[1:]
+        s = decoded
+    return s
+
+
 def _ensure_root_dir(root_dir: str | Path) -> Path:
     """Validate that `root_dir` exists, is a directory, and is readable."""
-    if not root_dir or not str(root_dir).strip():
+    cleaned = normalize_user_path(root_dir)
+    if not cleaned:
         raise LocalWorkspaceError(400, "ROOT_UNBOUND", "当前项目未绑定有效的本地目录路径")
-    raw = Path(str(root_dir).strip()).expanduser()
+    raw = Path(cleaned).expanduser()
     if not raw.exists():
         raise LocalWorkspaceError(404, "ROOT_MISSING", f"绑定的本地目录不存在或已被移动：{raw}")
     if not raw.is_dir():
@@ -212,7 +231,7 @@ def resolve_open_path_target(
     existing_projects: list[dict[str, Any]],
 ) -> dict[str, Any]:
     """Validate and resolve a local directory or supported file for CLI/open-path binding (D-05 Option A)."""
-    cleaned = (raw_path or "").strip()
+    cleaned = normalize_user_path(raw_path)
     if not cleaned:
         raise LocalWorkspaceError(400, "INVALID_PATH", "路径不能为空")
 
@@ -309,9 +328,10 @@ def resolve_open_path_target(
 
 def validate_root_dir(raw_path: str) -> dict[str, Any]:
     """Validate a candidate local folder path and return its canonical path & primary doc count."""
-    if not raw_path or not raw_path.strip():
+    cleaned = normalize_user_path(raw_path)
+    if not cleaned:
         return {"valid": False, "error_code": "EMPTY_PATH", "detail": "请输入或选择一个本地文件夹路径"}
-    p = Path(raw_path.strip()).expanduser()
+    p = Path(cleaned).expanduser()
     if not p.exists():
         return {"valid": False, "error_code": "NOT_FOUND", "detail": f"目录不存在：{p}"}
     if not p.is_dir():
@@ -362,7 +382,10 @@ def scan_local_tree(
     """Recursively scan a bound local folder within strict depth, entry, noise, and sandbox bounds."""
     root_real = _ensure_root_dir(root_dir)
     root_stat = root_real.stat()
-    visited_dirs: set[tuple[int, int]] = {(root_stat.st_dev, root_stat.st_ino)}
+    visited_inodes: set[tuple[int, int]] = (
+        {(root_stat.st_dev, root_stat.st_ino)} if root_stat.st_ino else set()
+    )
+    visited_paths: set[str] = {os.path.normcase(str(root_real))}
 
     scanned_entries = 0
     doc_count = 0
@@ -415,8 +438,9 @@ def scan_local_tree(
                 st = resolved_d.stat()
             except OSError:
                 continue
-            dir_key = (st.st_dev, st.st_ino)
-            if dir_key in visited_dirs:
+            norm_d = os.path.normcase(str(resolved_d))
+            dir_key = (st.st_dev, st.st_ino) if st.st_ino else None
+            if norm_d in visited_paths or (dir_key is not None and dir_key in visited_inodes):
                 continue
 
             if depth >= max_depth:
@@ -424,7 +448,9 @@ def scan_local_tree(
                 truncated_reason = f"目录嵌套层级超过安全上限（{max_depth} 层），更深目录已截断"
                 continue
 
-            visited_dirs.add(dir_key)
+            visited_paths.add(norm_d)
+            if dir_key is not None:
+                visited_inodes.add(dir_key)
             scanned_entries += 1
             child_rel = f"{rel_prefix}/{ent.name}" if rel_prefix else ent.name
             children = _walk(resolved_d, child_rel, depth + 1)

@@ -96,7 +96,14 @@ export const api = {
   ): Promise<{ picked: boolean; path?: string; cancelled?: boolean; supported?: boolean; detail?: string }> => {
     const desktopApi = getDesktopApi();
     if (desktopApi?.select_local_folder) {
-      return desktopApi.select_local_folder(initialDir || '');
+      try {
+        const res = await desktopApi.select_local_folder(initialDir || '');
+        if (res && (res.picked || res.cancelled || res.supported !== false)) {
+          return res;
+        }
+      } catch {
+        // Fall through to backend OS-native folder dialog (/api/local/pick-folder)
+      }
     }
     return jsonFetch('/api/local/pick-folder', {
       method: 'POST',

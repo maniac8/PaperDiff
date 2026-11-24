@@ -20,6 +20,7 @@ from __future__ import annotations
 import hmac
 import os
 import platform
+import shutil
 import subprocess
 import sys
 import threading
@@ -72,6 +73,7 @@ from .database import (
 )
 from .local_workspace import (
     LocalWorkspaceError,
+    normalize_user_path,
     probe_root_summary,
     read_local_file_for_analysis,
     read_local_raw_file,
@@ -529,34 +531,160 @@ def api_open_local_path(request: Request, payload: FolderValidatePayload) -> dic
     }
 
 
+def _pick_native_folder(initial_dir: str | None = None) -> dict[str, Any]:
+    """Open an OS-native folder selection dialog (macOS / Windows / Linux) cleanly out-of-process."""
+    system = platform.system()
+    safe_init_path = ""
+    if initial_dir:
+        try:
+            cand = Path(normalize_user_path(initial_dir)).expanduser()
+            if cand.is_dir():
+                safe_init_path = str(cand.resolve())
+        except OSError:
+            safe_init_path = ""
+
+    if system == "Darwin":
+        script = 'POSIX path of (choose folder with prompt "选择论文所在本地文件夹")'
+        if safe_init_path:
+            escaped = safe_init_path.replace("\\", "\\\\").replace('"', '\\"')
+            script = (
+                f'POSIX path of (choose folder with prompt "选择论文所在本地文件夹" '
+                f'default location POSIX file "{escaped}")'
+            )
+        try:
+            proc = subprocess.run(
+                ["osascript", "-e", script],
+                capture_output=True,
+                text=True,
+                timeout=120,
+                check=False,
+            )
+        except Exception as exc:
+            return {"picked": False, "supported": False, "detail": str(exc)}
+        if proc.returncode != 0:
+            return {"picked": False, "cancelled": True, "supported": True}
+        chosen = proc.stdout.strip().rstrip("/")
+        return (
+            {"picked": True, "supported": True, "path": chosen}
+            if chosen
+            else {"picked": False, "cancelled": True, "supported": True}
+        )
+
+    if system == "Windows":
+        no_window = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+        # In PyInstaller frozen builds, `sys.executable` is PaperDiff.exe (not python.exe) and
+        # tkinter is intentionally excluded; skip tkinter subprocess and go straight to PowerShell.
+        if not getattr(sys, "frozen", False):
+            tk_script = (
+                "import sys, tkinter as tk\n"
+                "from tkinter import filedialog\n"
+                "root = tk.Tk()\n"
+                "root.withdraw()\n"
+                "try:\n"
+                "    root.attributes('-topmost', True)\n"
+                "except Exception:\n"
+                "    pass\n"
+                "root.update()\n"
+                "init = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1] else None\n"
+                "chosen = filedialog.askdirectory(title='选择论文所在本地文件夹', initialdir=init, mustexist=True)\n"
+                "root.destroy()\n"
+                "if chosen:\n"
+                "    sys.stdout.write(chosen)\n"
+            )
+            try:
+                proc = subprocess.run(
+                    [sys.executable, "-c", tk_script, safe_init_path],
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=120,
+                    check=False,
+                    creationflags=no_window,
+                )
+                if proc.returncode == 0:
+                    chosen = proc.stdout.strip()
+                    if chosen:
+                        return {"picked": True, "supported": True, "path": os.path.normpath(chosen)}
+                    return {"picked": False, "cancelled": True, "supported": True}
+            except Exception:
+                pass
+
+        # Fallback: Windows PowerShell modern FolderBrowserDialog (STA + UTF-8 + TopMost)
+        ps_init = safe_init_path.replace("'", "''")
+        ps_script = (
+            "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; "
+            "Add-Type -AssemblyName System.Windows.Forms; "
+            "$owner = New-Object System.Windows.Forms.Form; "
+            "$owner.TopMost = $true; $owner.StartPosition = 'Manual'; $owner.Location = New-Object System.Drawing.Point(-32000, -32000); "
+            "$dlg = New-Object System.Windows.Forms.FolderBrowserDialog; "
+            "$dlg.Description = '选择论文所在本地文件夹'; "
+            "$dlg.UseDescriptionForTitle = $true; "
+            "$dlg.AutoUpgradeEnabled = $true; "
+            + (f"$dlg.SelectedPath = '{ps_init}'; " if ps_init else "")
+            + "$res = $dlg.ShowDialog($owner); $owner.Dispose(); "
+            "if ($res -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::Out.Write($dlg.SelectedPath) }"
+        )
+        try:
+            proc = subprocess.run(
+                ["powershell.exe", "-NoProfile", "-STA", "-Command", ps_script],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=120,
+                check=False,
+                creationflags=no_window,
+            )
+            if proc.returncode == 0:
+                chosen = proc.stdout.strip()
+                if chosen:
+                    return {"picked": True, "supported": True, "path": os.path.normpath(chosen)}
+                return {"picked": False, "cancelled": True, "supported": True}
+        except Exception as exc:
+            return {"picked": False, "supported": False, "detail": f"无法唤起 Windows 目录选择器：{exc}"}
+        return {"picked": False, "supported": False, "detail": "无法唤起系统目录选择器，请直接粘贴本地文件夹路径"}
+
+    if system == "Linux":
+        zenity = shutil.which("zenity")
+        if zenity:
+            cmd = [zenity, "--file-selection", "--directory", "--title=选择论文所在本地文件夹"]
+            if safe_init_path:
+                cmd.append(f"--filename={safe_init_path.rstrip('/')}/")
+            try:
+                proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120, check=False)
+                if proc.returncode == 0 and proc.stdout.strip():
+                    return {"picked": True, "supported": True, "path": proc.stdout.strip().rstrip("/")}
+                return {"picked": False, "cancelled": True, "supported": True}
+            except Exception:
+                pass
+        kdialog = shutil.which("kdialog")
+        if kdialog:
+            try:
+                proc = subprocess.run(
+                    [kdialog, "--getexistingdirectory", safe_init_path or str(Path.home())],
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                    check=False,
+                )
+                if proc.returncode == 0 and proc.stdout.strip():
+                    return {"picked": True, "supported": True, "path": proc.stdout.strip().rstrip("/")}
+                return {"picked": False, "cancelled": True, "supported": True}
+            except Exception:
+                pass
+
+    return {"picked": False, "supported": False, "detail": "当前平台请直接粘贴本地目录绝对路径"}
+
+
 @app.post("/api/local/pick-folder")
 def api_pick_local_folder(request: Request, payload: FolderPickPayload) -> dict[str, Any]:
     if not _is_loopback_request(request):
         raise HTTPException(status_code=403, detail="仅允许本机 127.0.0.1 调用系统文件夹选择器")
-    if platform.system() != "Darwin":
-        return {"picked": False, "supported": False, "detail": "当前平台请直接粘贴本地目录绝对路径"}
-
-    script = 'POSIX path of (choose folder with prompt "选择论文所在本地文件夹")'
-    if payload.initial_dir and Path(payload.initial_dir).expanduser().is_dir():
-        safe_init = str(Path(payload.initial_dir).expanduser().resolve()).replace("\\", "\\\\").replace('"', '\\"')
-        script = f'POSIX path of (choose folder with prompt "选择论文所在本地文件夹" default location POSIX file "{safe_init}")'
-
-    try:
-        proc = subprocess.run(
-            ["osascript", "-e", script],
-            capture_output=True,
-            text=True,
-            timeout=120,
-            check=False,
-        )
-    except Exception as exc:
-        return {"picked": False, "supported": False, "detail": str(exc)}
-
-    if proc.returncode != 0:
-        return {"picked": False, "cancelled": True, "supported": True}
-    chosen = proc.stdout.strip().rstrip("/")
-    if not chosen:
-        return {"picked": False, "cancelled": True, "supported": True}
+    picked = _pick_native_folder(payload.initial_dir)
+    if not picked.get("picked") or not picked.get("path"):
+        return picked
+    chosen = str(picked["path"])
     val = validate_root_dir(chosen)
     return {
         "picked": True,
