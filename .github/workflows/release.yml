@@ -16,14 +16,14 @@ concurrency:
 jobs:
   build-and-publish:
     name: Verify, Build macOS DMG & Publish Release
-    runs-on: macos-14
+    runs-on: macos-latest
     timeout-minutes: 30
     env:
       GH_TOKEN: ${{ github.token }}
       TAG_NAME: ${{ github.ref_name }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -65,14 +65,14 @@ jobs:
           EOF
 
       - name: Setup Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
-      - name: Setup Node.js 20
-        uses: actions/setup-node@v4
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: paperdiff/frontend/package-lock.json
 
