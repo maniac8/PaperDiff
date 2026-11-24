@@ -19,7 +19,7 @@ lxml>=5.0.0,<7.0.0
 jieba>=0.42.1,<1.0.0
 
 # macOS Native Desktop Shell (Optional for Web-Only Mode; Required for desktop_app.py)
-pywebview>=5.1,<7.0
+pywebview>=6.2.1,<7.0
 pyobjc-core>=10.0; sys_platform == "darwin"
 pyobjc-framework-Cocoa>=10.0; sys_platform == "darwin"
 pyobjc-framework-WebKit>=10.0; sys_platform == "darwin"
