@@ -35,29 +35,36 @@
 
 ## 界面演示
 
-### 1. 论文阅读器（本地目录直读与学术精排）
+内置 **浅色白天 / 护眼米黄 / 深色暗夜** 三套主题（顶栏一键切换），下方分别以 **浅色模式** 与 **深色模式** 展示核心界面，直观对比昼夜视觉体验：
+
+### 1. 论文阅读器 · 浅色模式（本地目录直读与学术精排）
 
 直接绑定本地论文目录，左侧展示干净的文件树与章节目录，正文忠实保留中英文缩进、公式、图表、定理框与引文渲染（`.docx` 同时支持一键切换「Word 原版」与原生修订痕迹拆版），断网 100% 可用。
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./assets/screenshots/reader-zh-dark.png" />
-    <source media="(prefers-color-scheme: light)" srcset="./assets/screenshots/reader-zh-light.png" />
-    <img src="./assets/screenshots/reader-zh-light.png" alt="PaperDiff 论文阅读器：展示本地目录树、章节目录与学术排版、公式、图表渲染" width="100%" />
-  </picture>
+  <img src="./assets/screenshots/reader-zh-light.png" alt="PaperDiff 论文阅读器浅色模式：展示本地目录树、章节目录与学术排版、公式、图表渲染" width="100%" />
 </p>
 
-### 2. 双论文对照比对（结构化 Diff 与事实守恒审计）
+### 2. 双论文对照比对 · 深色模式（结构化 Diff 与事实守恒审计）
 
 在目录中勾选任意两份论文版本（`v1` 与 `v2`）即可进入左右对照视图，精准高亮文字增删、数值与 `p` 值变动、表格最优值加粗变化、公式改动与 AI 腔修订，并自动折叠连续未修改段落。
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./assets/screenshots/diff-zh-dark.png" />
-    <source media="(prefers-color-scheme: light)" srcset="./assets/screenshots/diff-zh-light.png" />
-    <img src="./assets/screenshots/diff-zh-light.png" alt="PaperDiff 双论文左右对照比对界面：展示本地论文目录、增删高亮、AI 腔删改、未修改段落折叠与数学公式渲染" width="100%" />
-  </picture>
+  <img src="./assets/screenshots/diff-zh-dark.png" alt="PaperDiff 双论文左右对照比对深色模式：展示本地论文目录、增删高亮、AI 腔删改、未修改段落折叠与数学公式渲染" width="100%" />
 </p>
+
+<details>
+<summary>查看另一套配色（深色模式阅读器 &amp; 浅色模式双论文比对）</summary>
+
+<p align="center">
+  <img src="./assets/screenshots/reader-zh-dark.png" alt="PaperDiff 论文阅读器深色模式" width="100%" />
+</p>
+
+<p align="center">
+  <img src="./assets/screenshots/diff-zh-light.png" alt="PaperDiff 双论文左右对照比对浅色模式" width="100%" />
+</p>
+
+</details>
 
 ---
 

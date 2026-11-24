@@ -35,29 +35,36 @@ It runs strictly on `127.0.0.1` with **zero cloud uploads**, **zero external LLM
 
 ## Screenshots
 
-### 1. Academic Manuscript Reader
+PaperDiff ships with **Light**, **Sepia**, and **Dark** themes (one-click switch in the top bar). Below are the two core views shown in **Light Mode** and **Dark Mode** respectively for clear day/night contrast:
+
+### 1. Academic Manuscript Reader *(Light Mode)*
 
 Bind a local manuscript folder directly—browse files and document outlines on the left while reading faithful LaTeX, Word, and Markdown typography (display equations, theorems, macros, figures, and citations) completely offline.
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./assets/screenshots/reader-en-dark.png" />
-    <source media="(prefers-color-scheme: light)" srcset="./assets/screenshots/reader-en-light.png" />
-    <img src="./assets/screenshots/reader-en-light.png" alt="PaperDiff Academic Manuscript Reader displaying bound local folder tree, outline, rendered LaTeX abstract, display equation (1), and Theorem 1" width="100%" />
-  </picture>
+  <img src="./assets/screenshots/reader-en-light.png" alt="PaperDiff Academic Manuscript Reader in Light Mode displaying bound local folder tree, outline, rendered LaTeX abstract, display equation (1), and Theorem 1" width="100%" />
 </p>
 
-### 2. Side-by-Side Two-Manuscript Diff
+### 2. Side-by-Side Two-Manuscript Diff *(Dark Mode)*
 
 Select any two manuscript versions (`v1` vs. `v2`) to inspect word-level side-by-side diffs with automatic highlighting of numeric shifts (`14.2% (p = 0.018) → 12.6% (p = 0.009)`, `68.4% → 73.1%`), citation tokens, AI-phrasing edits, and fact-conservation warnings.
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./assets/screenshots/diff-en-dark.png" />
-    <source media="(prefers-color-scheme: light)" srcset="./assets/screenshots/diff-en-light.png" />
-    <img src="./assets/screenshots/diff-en-light.png" alt="PaperDiff side-by-side LaTeX structural diff comparing v1_manuscript.tex vs v2_manuscript.tex with numeric shifts, citation chips, and fact-conservation alerts" width="100%" />
-  </picture>
+  <img src="./assets/screenshots/diff-en-dark.png" alt="PaperDiff side-by-side LaTeX structural diff in Dark Mode comparing v1_manuscript.tex vs v2_manuscript.tex with numeric shifts, citation chips, and fact-conservation alerts" width="100%" />
 </p>
+
+<details>
+<summary>View opposite theme variants (Dark Mode Reader &amp; Light Mode Diff)</summary>
+
+<p align="center">
+  <img src="./assets/screenshots/reader-en-dark.png" alt="PaperDiff Academic Manuscript Reader in Dark Mode" width="100%" />
+</p>
+
+<p align="center">
+  <img src="./assets/screenshots/diff-en-light.png" alt="PaperDiff side-by-side LaTeX structural diff in Light Mode" width="100%" />
+</p>
+
+</details>
 
 ---
 
